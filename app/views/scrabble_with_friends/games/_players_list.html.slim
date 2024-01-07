@@ -1,0 +1,33 @@
+div.text-center
+  h2.space-above3 Players
+
+  table.table.table-bordered style="max-width: 400px; margin: 15px auto;"
+    thead
+      th.text-center Username
+      - if @game.started?
+        th.text-center Score
+    tbody
+      - num_players= @game.players.size
+      - @game.players.each do |player|
+        tr
+          td
+            - if @game.game_over? && @game.players.max_by(&:score)&.username == player.username
+              i.icon-trophy.space-right2 style="color: green; font-size: 16px;"
+
+            = player.username
+
+            - if player.username == current_username
+              = " (You)"
+
+            - if player.forfeitted?
+              = " (Forfeitted)"
+
+            - if @game.current_player&.username == player.username
+              = " (Current Player)"
+
+            - if !@game.started? && num_players >= 2
+              = link_to remove_player_game_path(@game, player_id: player.id), class: "btn btn-xs btn-danger space-left2", "data-confirm" => "Are you sure you want to remove this player from the game?", "data-method" => :post do
+                i.icon-trash
+
+          - if @game.started?
+            td = player.score

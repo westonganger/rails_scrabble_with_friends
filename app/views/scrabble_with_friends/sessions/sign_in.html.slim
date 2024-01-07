@@ -1,0 +1,23 @@
+.text-center style="max-width: 600px; margin: 0 auto;"
+  .well.well-sm
+    h1.space-above Sign In
+
+    = form_tag nil, method: :post, class: 'form-inline' do
+      .form-group.hidden.honeypot
+        label Honeypot
+        input.form-control type="password" name="honeypot" autofocus=true
+
+      .form-group
+        label Username
+        div
+          input.form-control type="text" name="username" autofocus=true
+        .hint.small.text-muted.space-above Example: john-smith-829
+
+      button.btn.btn-sm.btn-success.space-left2 type="submit" Submit
+
+javascript:
+  $(function(){
+    setTimeout(function(){
+      $(".honeypot input").val("the-expected-value");
+    }, 100);
+  });

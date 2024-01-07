@@ -1,0 +1,25 @@
+.alert.alert-info.center-block.text-center style="max-width: 700px"
+  h2.space-above Waiting to Start Game
+
+  p.space-above3
+    strong Any player is able to start the game by playing a word.
+
+  - if !@game.started? && @game.players.map(&:username).exclude?(current_username)
+    = link_to "Join Game", add_player_game_path(@game), "data-method" => "post", class: "btn btn-primary space-above3"
+
+  = render "players_list"
+
+  table.table.table-bordered.space-above3
+    tbody
+      tr
+        td colspan="2"
+          strong Invite your friends by sharing any of the following:
+      tr
+        td.bold.text-right URL
+        td = link_to request.url, request.url
+      tr
+        td.bold.text-right Game ID
+        td = @game.public_id
+      - if @game.password.present?
+        td.bold.text-right Game Name
+        td = @game.password

@@ -1,0 +1,42 @@
+- @title ||= "Scrabble with Friends"
+- @description ||= "Simple web-based scrabble"
+
+doctype html
+html
+  head
+    title = @title
+
+    = csrf_meta_tags
+    meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, minimum-scale=1"
+
+    meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1"
+
+    = favicon_link_tag "scrabble_with_friends/favicon.ico"
+
+    = render "layouts/scrabble_with_friends/assets"
+
+  body
+    nav.navbar.navbar-fixed-top
+      i.icon-reorder.navbar-toggle.visible-xs.space-above2 style="cursor: pointer;"  data-toggle="collapse" data-target="#nav" title="Show/Hide Menu"
+
+      .container-fluid
+        .navbar-header
+          h1.hidden = @title
+          a.navbar-brand href=root_path = "#{@title}"
+
+        .navbar-collapse.collapse#nav
+          - if signed_in?
+            ul.nav.navbar-nav
+              li class=('active' if params[:action] == "index")
+                a href=games_path Find Game
+              li
+                a href=games_path Start New Game
+
+          ul.nav.navbar-nav.navbar-right
+            li
+              a href=sign_out_path Sign Out
+
+    .container-fluid
+      = render "scrabble_with_friends/shared/flash"
+
+      = yield

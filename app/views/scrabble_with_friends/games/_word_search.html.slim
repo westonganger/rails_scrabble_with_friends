@@ -1,0 +1,18 @@
+.well.well-sm.text-center.space-above4.center-block style="max-width: 400px;"
+  h4 Dictionary Search
+  form#word-search
+    = text_field_tag :word, "", placeholder: "Enter a word", style: "margin-bottom: 10px;"
+    button.btn.btn-default.btn-xs.space-left2#search-btn type="submit" Perform Dictionary Search
+
+javascript:
+  $(function(){
+    $("form#word-search").submit(function(){
+      var word = $(this).find("input[name='word']").val();
+
+      if(word){
+        window.open(`https://scrabblecheck.com/${word}`, "_blank");
+      }
+
+      return false;
+    });
+  });

@@ -1,0 +1,18 @@
+- if @game.turns.none?
+  - this_player = @game.players.detect{|x| x.username == current_username }
+- else
+  - this_player = @game.active_players.detect{|x| x.username == current_username }
+
+- if this_player
+  #player-actions-container
+    #player-tiles
+      - this_player.tiles.each do |letter|
+        = tile(letter: letter, moveable: @is_current_player)
+
+      - if @is_current_player
+        .tile.tile-letter.player-action title="Restart Turn"
+          = link_to request.path, "data-confirm" => "Are you sure you want to reset your turn?", style: "text-decoration: none;" do
+            i.icon-repeat style="color: black"
+
+        .tile.tile-letter#finish-turn.player-action title="Complete Turn"
+          i.icon-ok

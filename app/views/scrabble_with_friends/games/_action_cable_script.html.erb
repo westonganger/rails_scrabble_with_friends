@@ -1,0 +1,37 @@
+<script type="module">
+  import * as ActionCable from "https://cdn.jsdelivr.net/npm/@rails/actioncable@<%= Rails::VERSION::STRING.split(".")[0..2].join(".") %>/+esm";
+
+  var consumer = ActionCable.createConsumer();
+
+  var warned = false;
+
+  var game_last_updated_at = "<%= @game.updated_at.utc.iso8601 %>";
+
+  var alert_and_reload = function(){
+    warned = true;
+    alert("This game has been modified since this page was loaded.\n\nPress OK to reload the page.");
+    window.location.reload();
+  };
+
+  consumer.subscriptions.create({channel: "ScrabbleWithFriends::GameChannel", id: "<%= @game.public_id %>"}, {
+    received: function(data){
+      if(!warned && data.action == "reload" && data.identifier != "<%= current_username %>"){
+        alert_and_reload();
+      }
+    },
+    connected: function(data){
+      if(!data.reconnected || warned){
+        return false;
+      }
+
+      $.ajax({
+        url: "<%= game_path(@game, format: :json) %>",
+        method: "GET",
+      }).done(function(data){
+        if(game_last_updated_at < data.game.updated_at){
+          alert_and_reload();
+        }
+      });
+    },
+  });
+</script>

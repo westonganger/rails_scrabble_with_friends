@@ -1,0 +1,122 @@
+.board-container
+  .board
+    - @game.board.each_with_index do |row, row_index|
+      - row.each_with_index do |letter, col_index|
+        = board_square(row_index: row_index, col_index: col_index, letter: letter)
+
+
+javascript:
+  $(function(){
+
+    $("#finish-turn").click(function(){
+      var tiles_played = [];
+
+      $(".board-square .tile.moveable").each(function(){
+        var tile = $(this);
+        var board_square = tile.closest(".board-square");
+
+        tiles_played.push({
+          letter: tile.find(".tile-letter").text(),
+          cell: [board_square.data("row-index"), board_square.data("col-index")],
+        });
+      });
+
+      $.ajax({
+        url: "#{validate_turn_game_path(@game, format: :json)}",
+        method: "post",
+        data: {game: {tiles_played: tiles_played}},
+      }).done(function(data){
+        if(data.errors && data.errors.length >= 1){
+          alert(`The following errors are present:\n\n${data.errors.join("\n")}`);
+
+          setTimeout(function(){
+            $(".board-square .tile.has-error").removeClass("has-error");
+          }, 5000);
+
+          return false;
+        }
+
+        if(data.words.length == 0){
+          var msg = "You have played no tiles. Please play some tiles to take a turn";
+
+          if(#{raw @game.started?}){
+            msg += "\n\nIf you would like to forfeit, use the forfeit button under the board.";
+          }
+
+          alert(msg);
+          return false;
+        }
+
+        var msg = "";
+        msg += "Are you sure you want to finish your turn?\n\nPlease review your words:\n"
+        data.words.forEach(function(item, i){
+          msg += `\n${item.word} (${item.points} Points)`;
+        });
+
+        if(confirm(msg)){
+          $.ajax({
+            url: "#{take_turn_game_path(@game)}",
+            method: "post",
+            data: {game: {tiles_played: tiles_played}},
+          }).done(function(){
+            window.location.reload();
+          });
+        }
+      });
+    });
+
+    $(".tile.moveable").on("dblclick doubletap", function(){
+      if($(this).parent().is(".board-square")){
+        // Put tile back in hand
+        var el = $(this).detach();
+
+        el.css({position: "relative"});
+
+        $("#player-tiles .player-action:first").before(el);
+      }
+    });
+
+    $(".tile.moveable").draggable({
+      revert: "invalid",
+    });
+
+    $("#player-actions-container").droppable({
+      accept: ".board-square .tile.moveable",
+      tolerance: "fit",
+      classes: {
+        "ui-droppable-hover": "drag-hover",
+      },
+      drop: function(ev, ui){
+        // drag back to hand
+        var tile = $(ui.draggable).detach();
+
+        tile.css({top: "unset", left: "unset", position: "relative"});
+
+        $("#player-tiles .player-action:first").before(tile);
+      },
+    });
+
+    $(".board-square.available").droppable({
+      accept: ".tile.moveable",
+      classes: {
+        "ui-droppable-hover": "drag-hover",
+      },
+      drop: function(ev, ui){
+        var board_square = $(this);
+
+        var tile = $(ui.draggable);
+
+        if(board_square.find(".tile").length >= 1 && !board_square.find(".tile").is(tile)){
+          // Prevent laying multiple tiles ontop of another
+          tile.css({top: "unset", left: "unset", position: "relative"});
+          return false;
+        }
+
+        // Snap to board square
+        tile
+          .detach()
+          .css({top: "0", left: "0", position: "absolute"})
+          .appendTo(board_square);
+      },
+    });
+  });
