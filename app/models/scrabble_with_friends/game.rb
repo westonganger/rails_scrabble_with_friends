@@ -34,22 +34,12 @@ module ScrabbleWithFriends
       public_id
     end
 
-    scope :game_over, ->() {
-      where(
-        <<~SQL
-          #{ScrabbleWithFriends::Player.table_name}.forfeitted != true
-          OR
-          json_array_length(#{ScrabbleWithFriends::Player.table_name}.tiles) != 0
-        SQL
-      ).joins(:players)
-    }
-
     def started?
       !!turns.first
     end
 
     def game_over?
-      players.any?{|x| x.tiles.empty? && !x.forfeitted? } || active_players.none?
+      active_players.none?
     end
 
     def restart!

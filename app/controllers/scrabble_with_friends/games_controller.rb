@@ -41,11 +41,7 @@ module ScrabbleWithFriends
     end
 
     def create
-      ScrabbleWithFriends::Game.game_over.where(created_at: ..7.days.ago).each do |completed_game|
-        completed_game.destroy!
-      end
-
-      ScrabbleWithFriends::Game.where(updated_at: ..30.days.ago).each do |inactive_game|
+      ScrabbleWithFriends::Game.where("#{ScrabbleWithFriends::Game.table_name}.updated_at <= ?", 60.days.ago).each do |inactive_game|
         inactive_game.destroy!
       end
 
