@@ -1,5 +1,11 @@
 .text-center style="max-width: 600px; margin: 0 auto;"
-  .well.well-sm
+  div.btn-container
+    = link_to "Start New Game", new_game_path, class: "btn btn-transparent"
+
+  div.btn-container
+    button.btn.btn-transparent.space-above4 type="button" onclick="$('.btn-container').remove(); $('#find-game').show();" Find Existing Game
+
+  #find-game style="display:none;"
     h1.space-above Find Existing Game
 
     = form_tag nil, method: :get, class: 'form-inline' do
@@ -9,22 +15,25 @@
 
       button.btn.btn-sm.btn-success.space-left3 type="submit" Find Game
 
-  .well.well-sm.space-above5
-    h1.space-above Start New Game
+  - if @your_games.any?
+    #recently-accessed-games.space-above5
+      h1 Your Games
 
-    .hint.small.space-below2 You can invite your friends to the game by sharing the URL, Game ID.
+      table.table.table-striped.table-hover.table-text-center.table-sortable
+        thead
+          th Game
+          th Current Player
+          th Last Updated
 
-    .hint.small.space-below2 Optionally you can define an easy to remember game name instead of the Game ID or URL.
-
-    = form_tag games_path, method: :post, class: 'form-inline' do
-      .form-group
-        label Game Name
-
-        input.form-control.password name="password" type="text" placeholder="Optional" style="max-width:170px;"
-
-      .space-above2
-        button.btn.btn-sm.btn-default.space-left3 type="submit"
-          i.icon-plus.space-right
-          span Start New Game
-
-  = render "recently_accessed"
+        tbody
+          - @your_games.each do |game|
+            - game_label = game.password.presence || game.public_id
+            tr onclick="window.location = '#{game_path(game)}';" style="cursor: pointer;"
+              td = link_to game_label, game_path(game)
+              td
+                - if game.current_player
+                  - if game.current_player.username == current_username
+                    | You
+                  - else
+                    = game.current_player.username
+              td = game.updated_at.to_date

@@ -1,0 +1,17 @@
+.text-center style="max-width: 600px; margin: 0 auto;"
+  h1.space-above Start New Game
+
+  .hint.small.space-below2 You can invite your friends to the game by sharing the URL, Game ID.
+
+  .hint.small.space-below2 Optionally you can define an easy to remember game name instead of the Game ID or URL.
+
+  = form_tag games_path, method: :post, class: 'form-inline' do
+    .form-group
+      label Game Name
+
+      input.form-control.password name="password" type="text" placeholder="Optional" style="max-width:170px;"
+
+    .space-above2
+      button.btn.btn-sm.btn-success.space-left3 type="submit"
+        i.icon-plus.space-right
+        span Start New Game

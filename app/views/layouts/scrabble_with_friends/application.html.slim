@@ -1,4 +1,4 @@
-- @title ||= "Scrabble with Friends"
+- @title ||= "Scrabble With Friends"
 - @description ||= "Simple web-based scrabble"
 
 doctype html
@@ -28,13 +28,13 @@ html
           - if signed_in?
             ul.nav.navbar-nav
               li class=('active' if params[:action] == "index")
-                a href=games_path Find Game
+                a href=games_path Games
               li
-                a href=games_path Start New Game
+                a href=new_game_path New Game
 
-          ul.nav.navbar-nav.navbar-right
-            li
-              a href=sign_out_path Sign Out
+            ul.nav.navbar-nav.navbar-right
+              li
+                a href=sign_out_path Sign Out
 
     .container-fluid
       = render "scrabble_with_friends/shared/flash"

@@ -13,12 +13,12 @@
 - if @game.started?
   .space-above2.text-center
     - if @game.last_turn && !@game.last_turn.player.forfeitted?
-      = link_to "Undo Last Turn", undo_turn_game_path(@game), class: "btn btn-default btn-xs", "data-confirm" => "Last turn was taken by #{@game.last_turn.player.username}\n\nAre you sure you want to undo the last turn?", "data-method" => :post
+      = link_to "Undo Last Turn", undo_turn_game_path(@game), class: "btn btn-transparent btn-xs", "data-confirm" => "Last turn was taken by #{@game.last_turn.player.username}\n\nAre you sure you want to undo the last turn?", "data-method" => :post
 
     - if @game.active_players.any?{|x| x.username == current_username }
-      = link_to "Forfeit", forfeit_game_path(@game), class: "btn btn-info btn-xs space-left4", "data-confirm" => "Are you sure you want to forfeit this game?", "data-method" => :post
+      = link_to "Forfeit", forfeit_game_path(@game), class: "btn btn-transparent btn-xs space-left4", "data-confirm" => "Are you sure you want to forfeit this game?", "data-method" => :post
 
-    = link_to "Restart Game", restart_game_path(@game), class: "btn btn-danger btn-xs space-left4", "data-confirm" => "Are you sure you want to restart this game?", "data-method" => :post
+    = link_to "Restart Game", restart_game_path(@game), class: "btn btn-transparent btn-xs space-left4", "data-confirm" => "Are you sure you want to restart this game?", "data-method" => :post
 
 = render "word_search"
 

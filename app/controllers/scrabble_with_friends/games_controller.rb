@@ -19,6 +19,8 @@ module ScrabbleWithFriends
     before_action :_get_game, except: [:index, :new, :create, :show]
 
     def index
+      _fetch_your_games
+
       if params[:game_id].present?
         params[:game_id] = params[:game_id].strip
 
@@ -38,6 +40,9 @@ module ScrabbleWithFriends
           flash.now[:alert] = "Game not found."
         end
       end
+    end
+
+    def new
     end
 
     def create
@@ -76,7 +81,7 @@ module ScrabbleWithFriends
         return
       end
 
-      _add_to_recently_accessed
+      _add_to_your_games
 
       @is_current_player = @game.active_players.map(&:username).include?(current_username) && !@game.game_over? && (!@game.started? || (_game_current_player.username == current_username))
 
@@ -243,11 +248,10 @@ module ScrabbleWithFriends
       )
     end
 
-    def _add_to_recently_accessed
-      session_key = :scrabble_with_friends_game_access_list
-      access_list = session[session_key] || {}
-      access_list[@game.public_id] = Time.now.to_s
-      session[session_key] = access_list
+    def _add_to_your_games
+      access_list = session[YOUR_GAMES_SESSION_KEY] || []
+      access_list << @game.public_id
+      session[YOUR_GAMES_SESSION_KEY] = access_list.uniq
     end
 
     def _tiles_played
@@ -556,5 +560,29 @@ module ScrabbleWithFriends
 
       word_points
     end
+
+    def _fetch_your_games
+      @your_games = []
+
+      game_ids = session[YOUR_GAMES_SESSION_KEY]
+
+      return if game_ids.blank?
+
+      begin
+        @your_games = ScrabbleWithFriends::Game.where(public_id: game_ids)
+
+        session[YOUR_GAMES_SESSION_KEY] = @your_games.map(&:public_id)
+
+        @your_games = @your_games
+          .sort_by(&:updated_at)
+          .reverse
+
+      rescue => e
+        session.delete(YOUR_GAMES_SESSION_KEY)
+        raise(e)
+      end
+    end
+
+    YOUR_GAMES_SESSION_KEY = :scrabble_with_friends_your_game_ids
   end
 end

@@ -1,11 +1,13 @@
 .text-center style="max-width: 600px; margin: 0 auto;"
-  .well.well-sm
-    h1.space-above Sign In
 
-    = form_tag nil, method: :post, class: 'form-inline' do
+  .well.well-sm
+    h2 Welcome to Scrabble With Friends
+    p Create a username to get started playing scrabble with your friends online.
+
+    = form_tag nil, method: :post, class: 'form-inline', autofill: "off" do
       .form-group.hidden.honeypot
         label Honeypot
-        input.form-control type="password" name="honeypot" autofocus=true
+        input.form-control type="password" name="honeypot"
 
       .form-group
         label Username

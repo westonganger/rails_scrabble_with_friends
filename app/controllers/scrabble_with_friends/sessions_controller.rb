@@ -28,7 +28,6 @@ module ScrabbleWithFriends
         redirect_to action: :sign_in
       else
         session.delete(:scrabble_with_friends_username)
-        flash.notice = "Signed out"
         redirect_to sign_in_path
       end
     end

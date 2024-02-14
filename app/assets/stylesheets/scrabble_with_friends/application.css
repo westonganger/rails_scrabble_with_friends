@@ -72,14 +72,30 @@ footer{
   left: 0;
 }
 
-.btn-default{
+.btn-transparent{
   border-color: gray;
   background-color: gray;
   background-image: none;
 }
 
+.btn-transparent{
+  background-color: transparent;
+  background-image: none;
+  border-color: #888;
+}
+
+.btn-transparent:hover,
+.btn-transparent:focus{
+  color: inherit;
+  background-color: rgba(0,0,0,0.02);
+}
+
 a, button{
   cursor: pointer; /* fix iOS not registering click events, https://stackoverflow.com/a/16006333/3068360 */
+}
+
+.table-sortable th{
+  cursor: pointer;
 }
 
 @media(max-width: 768px){

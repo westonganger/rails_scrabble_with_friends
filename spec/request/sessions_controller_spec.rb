@@ -24,7 +24,6 @@ RSpec.describe ScrabbleWithFriends::SessionsController, type: :request do
     it "allows sign in" do
       get scrabble_with_friends.sign_in_path
       assert_equal(response.status, 200)
-      assert(response.body.include?("Sign In"))
     end
 
     it "redirects to requested game" do
