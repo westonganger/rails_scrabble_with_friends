@@ -129,4 +129,36 @@ javascript:
 
       shuffled_tiles.prependTo(container);
     });
+
+    var onPinch = function(el, callback) {
+      let orig_hypot = undefined;
+
+      el.on("touchmove", function(event) {
+        if (event.touches.length === 2) {
+          let hypot = Math.hypot(
+            (event.touches[0].pageX - event.touches[1].pageX),
+            (event.touches[0].pageY - event.touches[1].pageY)
+          );
+
+          if(orig_hypot === undefined) {
+            orig_hypot = hypot;
+          }
+
+          callback(hypot, orig_hypot);
+        }
+      });
+
+      el.on("touchend", function(event) {
+        orig_hypot = undefined;
+        //$(".board").removeClass("zoomed-out");
+      });
+    };
+
+    onPinch($(".board"), function(hypot, orig_hypot){
+      if(hypot < orig_hypot){
+        $(".board").addClass("zoomed-out");
+      }else{
+        $(".board").removeClass("zoomed-out");
+      }
+    });
   });
