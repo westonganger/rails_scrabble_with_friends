@@ -16,3 +16,7 @@
 
         .tile.tile-letter#finish-turn.player-action title="Complete Turn"
           i.icon-ok
+      - else
+        .tile.tile-letter.player-action title="Refresh page"
+          = link_to request.path, style: "text-decoration: none;" do
+            i.icon-repeat style="color: black"
