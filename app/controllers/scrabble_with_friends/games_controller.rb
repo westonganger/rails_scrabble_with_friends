@@ -16,8 +16,6 @@ module ScrabbleWithFriends
       end
     end
 
-    before_action :_get_game, except: [:index, :new, :create, :show]
-
     def index
       _fetch_your_games
 
@@ -74,7 +72,7 @@ module ScrabbleWithFriends
 
     def show
       begin
-        _get_game
+        @game = ScrabbleWithFriends::Game.includes(:players, :turns).find_by!(public_id: params[:id])
       rescue ActiveRecord::RecordNotFound
         flash[:alert] = "Game not found or expired."
         redirect_to(action: :index)
@@ -99,6 +97,8 @@ module ScrabbleWithFriends
     end
 
     def restart
+      @game = ScrabbleWithFriends::Game.includes(:players, :turns).find_by!(public_id: params[:id])
+
       @game.restart!
 
       _broadcast_changes
@@ -107,6 +107,8 @@ module ScrabbleWithFriends
     end
 
     def forfeit
+      @game = ScrabbleWithFriends::Game.includes(:players).find_by!(public_id: params[:id])
+
       _user_current_player.update!(forfeitted: true, tiles: [])
 
       _broadcast_changes
@@ -115,6 +117,8 @@ module ScrabbleWithFriends
     end
 
     def undo_turn
+      @game = ScrabbleWithFriends::Game.find_by!(public_id: params[:id])
+
       last_turn = @game.last_turn
 
       last_player = last_turn.player
@@ -148,6 +152,8 @@ module ScrabbleWithFriends
     end
 
     def validate_turn
+      @game = ScrabbleWithFriends::Game.includes(:players, :turns).find_by!(public_id: params[:id])
+
       _validate_turn_only
 
       if @errors.any?
@@ -158,6 +164,8 @@ module ScrabbleWithFriends
     end
 
     def take_turn
+      @game = ScrabbleWithFriends::Game.includes(:players, :turns).find_by!(public_id: params[:id])
+
       _validate_turn_only
 
       if @errors.any?
@@ -181,6 +189,8 @@ module ScrabbleWithFriends
     end
 
     def add_player
+      @game = ScrabbleWithFriends::Game.includes(:turns).find_by!(public_id: params[:id])
+
       if @game.started?
         flash.alert = "Cannot add player when game is started"
         redirect_to(action: :show)
@@ -198,6 +208,8 @@ module ScrabbleWithFriends
     end
 
     def remove_player
+      @game = ScrabbleWithFriends::Game.includes(:players).find_by!(public_id: params[:id])
+
       if @game.players.size == 1
         flash.alert = "Cannot remove player. Game must have at least one player."
         redirect_to(action: :show)
@@ -212,15 +224,14 @@ module ScrabbleWithFriends
     end
 
     def destroy
+      @game = ScrabbleWithFriends::Game.find_by!(public_id: params[:id])
+
       @game.destroy!
+
       redirect_to(action: :show)
     end
 
     private
-
-    def _get_game
-      @game = ScrabbleWithFriends::Game.find_by!(public_id: params[:id])
-    end
 
     def _game_current_player
       return @game_current_player if defined?(@game_current_player)
@@ -249,9 +260,14 @@ module ScrabbleWithFriends
     end
 
     def _add_to_your_games
-      access_list = session[YOUR_GAMES_SESSION_KEY] || []
-      access_list << @game.public_id
-      session[YOUR_GAMES_SESSION_KEY] = access_list.uniq
+      game_ids = session[YOUR_GAMES_SESSION_KEY] || []
+
+      return if game_ids.include?(@game.public_id)
+      return if @game.players.none?{|x| x.username == current_username }
+
+      game_ids << @game.public_id
+
+      session[YOUR_GAMES_SESSION_KEY] = game_ids
     end
 
     def _tiles_played
@@ -568,19 +584,13 @@ module ScrabbleWithFriends
 
       return if game_ids.blank?
 
-      begin
-        @your_games = ScrabbleWithFriends::Game.where(public_id: game_ids)
+      @your_games = ScrabbleWithFriends::Game
+        .includes(:players, :turns)
+        .where(public_id: game_ids)
+        .where(players: {username: current_username})
+        .order(updated_at: :desc)
 
-        session[YOUR_GAMES_SESSION_KEY] = @your_games.map(&:public_id)
-
-        @your_games = @your_games
-          .sort_by(&:updated_at)
-          .reverse
-
-      rescue => e
-        session.delete(YOUR_GAMES_SESSION_KEY)
-        raise(e)
-      end
+      session[YOUR_GAMES_SESSION_KEY] = @your_games.map(&:public_id)
     end
 
     YOUR_GAMES_SESSION_KEY = :scrabble_with_friends_your_game_ids

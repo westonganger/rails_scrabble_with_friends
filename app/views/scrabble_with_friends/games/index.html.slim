@@ -31,7 +31,11 @@
             tr onclick="window.location = '#{game_path(game)}';" style="cursor: pointer;"
               td = link_to game_label, game_path(game)
               td
-                - if game.current_player
+                - if game.game_over?
+                  | Game over
+                - if !game.current_player
+                  | Waiting to start
+                - else
                   - if game.current_player.username == current_username
                     | You
                   - else
