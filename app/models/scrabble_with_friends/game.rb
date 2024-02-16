@@ -4,30 +4,35 @@ module ScrabbleWithFriends
     has_many :turns, class_name: "ScrabbleWithFriends::Turn", dependent: :destroy
 
     validate do
-      if new_record? && password.present? && self.class.find_by("public_id = :password OR password = :password", password: password)
-        self.errors.add(:password, "password already taken, please use a different one")
+      next if persisted? || name.nil?
+
+      existing_game = self.class
+        .for_user(Current.username)
+        .find_by(
+          "lower(name) = :name",
+          name: name.downcase,
+        )
+
+      if existing_game
+        self.errors.add(:name, "already taken")
       end
     end
     validates :public_id, uniqueness: {case_sensitive: true, allow_blank: true}
 
-    def password=(val)
-      self[:password] = val&.downcase
-    end
+    scope :inactive_games, -> { where("#{ScrabbleWithFriends::Game.table_name}.updated_at <= ?", 60.days.ago) }
+    scope :orphaned_games, -> { left_joins(:players).where(players: {id: nil}) }
+    scope :for_user, ->(username) { left_joins(:players).where(players: {username: Current.username}) }
 
-    before_create do
-      if password.present?
-        self.password = password.strip
+    before_validation do
+      if name.present?
+        self.name = name.strip
       else
-        self.password = nil
+        self.name = nil
       end
     end
 
     after_create do
       self.update_columns(public_id: ApplicationRecord.generate_public_id(id))
-    end
-
-    def name
-      self.password
     end
 
     def to_param
@@ -92,7 +97,7 @@ module ScrabbleWithFriends
     end
 
     def active_players
-      players.reject { |x| x.forfeitted? || x.tiles.empty? }
+      players.select(&:active?)
     end
 
     def last_turn
