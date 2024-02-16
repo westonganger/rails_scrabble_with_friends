@@ -2,7 +2,7 @@ class AddScrabbleWithFriendsTables < ActiveRecord::Migration[6.0]
   def change
     create_table :scrabble_with_friends_games do |t|
       t.string :public_id, index: true, unique: true
-      t.string :password
+      t.string :name
       t.timestamps
     end
 

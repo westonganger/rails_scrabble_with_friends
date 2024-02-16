@@ -5,6 +5,10 @@ module ScrabbleWithFriends
     helper_method :signed_in?
     helper_method :current_username
 
+    before_action do
+      Current.username = session[:scrabble_with_friends_username].presence
+    end
+
     def robots
       str = <<~STR
         User-agent: *
@@ -25,11 +29,11 @@ module ScrabbleWithFriends
     private
 
     def signed_in?
-      current_username.present?
+      Current.username.present?
     end
 
     def current_username
-      session[:scrabble_with_friends_username].presence
+      Current.username
     end
 
   end

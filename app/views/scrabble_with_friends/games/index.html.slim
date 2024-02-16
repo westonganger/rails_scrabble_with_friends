@@ -2,34 +2,36 @@
   div.btn-container
     = link_to "Start New Game", new_game_path, class: "btn btn-transparent"
 
-  div.btn-container
-    button.btn.btn-transparent.space-above4 type="button" onclick="$('.btn-container').remove(); $('#find-game').show();" Find Existing Game
+  #your-games.space-above5
+    h1 Your Games
 
-  #find-game style="display:none;"
-    h1.space-above Find Existing Game
-
-    = form_tag nil, method: :get, class: 'form-inline' do
-      .form-group
-        label Game ID/Name
-        input.form-control name="game_id" type="text" autofocus=true
-
-      button.btn.btn-sm.btn-success.space-left3 type="submit" Find Game
-
-  - if @your_games.any?
-    #recently-accessed-games.space-above5
-      h1 Your Games
-
-      table.table.table-striped.table-hover.table-text-center.table-sortable
+    - if @your_games.any?
+      table.table.table-hover.table-text-center.table-sortable
         thead
           th Game
           th Current Player
           th Last Updated
+          - if @your_games.any?
+            th
 
         tbody
           - @your_games.each do |game|
-            - game_label = game.password.presence || game.public_id
-            tr onclick="window.location = '#{game_path(game)}';" style="cursor: pointer;"
-              td = link_to game_label, game_path(game)
+            - vs_players = game.players.map(&:username) - [current_username]
+
+            tr data-url="#{game_path(game)}"
+              td
+                - if game.name.present?
+                  - game_label = game.name
+                - else
+                  - if vs_players.any?
+                    - game_label = "You vs #{vs_players.join(", ")}".html_safe
+                  - elsif game.started?
+                    - game_label = "Solo Game".html_safe
+                  - else
+                    - game_label = "Waiting for players".html_safe
+
+                = link_to game_label, game_path(game)
+
               td
                 - if game.game_over?
                   | Game over
@@ -40,4 +42,23 @@
                     | You
                   - else
                     = game.current_player.username
+
               td = game.updated_at.to_date
+
+              td
+                - if !game.current_player || vs_players.empty?
+                  = link_to game_path(game), method: :delete, title: "Delete game", "data-confirm" => "Are you sure you want to delete this game?", class: "btn btn-danger btn-xs space-left" do
+                    i.icon-trash
+
+    small.text-muted Your games will be listed here after you have accessed them on this device at least once. If your game is not listed here then you must visit it via the game URL.
+
+javascript:
+  $(function(){
+    $("tr[data-url]")
+      .css("cursor", "pointer")
+      .click(function(event){
+        if(!$(event.target).is("a, button") && $(event.target).parents("a, button").length == 0){
+          window.location = $(this).data("url");
+        }
+      });
+  });

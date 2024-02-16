@@ -13,13 +13,7 @@
     tbody
       tr
         td colspan="2"
-          strong Invite your friends by sharing any of the following:
+          strong Invite your friends by sharing the URL:
       tr
         td.bold.text-right URL
         td = link_to request.url, request.url
-      tr
-        td.bold.text-right Game ID
-        td = @game.public_id
-      - if @game.password.present?
-        td.bold.text-right Game Name
-        td = @game.password

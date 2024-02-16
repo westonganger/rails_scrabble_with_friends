@@ -1,21 +1,19 @@
 .text-center style="max-width: 600px; margin: 0 auto;"
+  h2 Welcome to Scrabble With Friends
+  p Create a username to get started playing scrabble with your friends online.
 
-  .well.well-sm
-    h2 Welcome to Scrabble With Friends
-    p Create a username to get started playing scrabble with your friends online.
+  = form_tag nil, method: :post, class: 'form-inline', autofill: "off" do
+    .form-group.hidden.honeypot
+      label Honeypot
+      input.form-control type="password" name="honeypot"
 
-    = form_tag nil, method: :post, class: 'form-inline', autofill: "off" do
-      .form-group.hidden.honeypot
-        label Honeypot
-        input.form-control type="password" name="honeypot"
+    .form-group
+      label Username
+      div
+        input.form-control type="text" name="username" autofocus=true
+      .hint.small.text-muted.space-above Example: john-smith-829
 
-      .form-group
-        label Username
-        div
-          input.form-control type="text" name="username" autofocus=true
-        .hint.small.text-muted.space-above Example: john-smith-829
-
-      button.btn.btn-sm.btn-success.space-left2 type="submit" Submit
+    button.btn.btn-sm.btn-success.space-left2 type="submit" Submit
 
 javascript:
   $(function(){

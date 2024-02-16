@@ -18,39 +18,19 @@ module ScrabbleWithFriends
 
     def index
       _fetch_your_games
-
-      if params[:game_id].present?
-        params[:game_id] = params[:game_id].strip
-
-        if params[:game_id].start_with?("http")
-          params[:game_id] = params[:game_id].split("/").last
-        end
-
-        game = ScrabbleWithFriends::Game.find_by(
-          "public_id = :public_id OR password = :game_password",
-          public_id: params[:game_id],
-          game_password: params[:game_id].downcase,
-        )
-
-        if game
-          redirect_to(action: :show, id: game.public_id)
-        else
-          flash.now[:alert] = "Game not found."
-        end
-      end
     end
 
     def new
     end
 
     def create
-      ScrabbleWithFriends::Game.where("#{ScrabbleWithFriends::Game.table_name}.updated_at <= ?", 60.days.ago).each do |inactive_game|
-        inactive_game.destroy!
+      (ScrabbleWithFriends::Game.inactive_games.to_a + ScrabbleWithFriends::Game.orphaned_games.to_a).each do |game|
+        game.destroy!
       end
 
       game_saved = false
 
-      @game = ScrabbleWithFriends::Game.new(password: params[:password])
+      @game = ScrabbleWithFriends::Game.new(name: params[:name])
 
       game_saved = false
 
@@ -64,8 +44,11 @@ module ScrabbleWithFriends
 
       if game_saved
         redirect_to(action: :show, id: @game.to_param)
+      elsif @game.errors[:name].present?
+        flash.alert = "Game not saved. Please choose a different name."
+        redirect_to(action: :index)
       else
-        flash.alert = "Game not saved. Please choose a different password."
+        flash.alert = "Game not saved."
         redirect_to(action: :index)
       end
     end
@@ -228,7 +211,7 @@ module ScrabbleWithFriends
 
       @game.destroy!
 
-      redirect_to(action: :show)
+      redirect_to(action: :index)
     end
 
     private
@@ -585,9 +568,9 @@ module ScrabbleWithFriends
       return if game_ids.blank?
 
       @your_games = ScrabbleWithFriends::Game
-        .includes(:players, :turns)
+        .for_user(current_username)
         .where(public_id: game_ids)
-        .where(players: {username: current_username})
+        .includes(:players, :turns)
         .order(updated_at: :desc)
 
       session[YOUR_GAMES_SESSION_KEY] = @your_games.map(&:public_id)
