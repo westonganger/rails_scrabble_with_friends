@@ -14,12 +14,13 @@ RSpec.describe ScrabbleWithFriends::GamesController, type: :request do
   end
 
   def create_game
-    @game = ScrabbleWithFriends::Game.create!(password: :foo_password)
-    @game.players.create!(username: session[:scrabble_with_friends_username], tiles: [])
+    @game = ScrabbleWithFriends::Game.create!(name: :foo_name)
+    @game.players.create!(username: session[:scrabble_with_friends_username])
+    @game
   end
 
   def create_player
-    @game.players.create!(username: SecureRandom.hex(6), tiles: [])
+    @game.players.create!(username: SecureRandom.hex(6))
   end
 
   def create_turn
@@ -44,34 +45,60 @@ RSpec.describe ScrabbleWithFriends::GamesController, type: :request do
     it "renders" do
       get scrabble_with_friends.games_path
       expect(response.status).to eq(200)
-      expect(response.body).to include("Find Game")
+    end
+
+    it "renders game list" do
+      create_game
+
+      get scrabble_with_friends.games_path
+      expect(response.status).to eq(200)
+      expect(response.body).to include("Your Games")
+      expect(response.body).not_to include(scrabble_with_friends.game_path(@game))
+
+      get scrabble_with_friends.game_path(@game)
+      expect(response.status).to eq(200)
+
+      get scrabble_with_friends.games_path
+      expect(response.status).to eq(200)
+      expect(response.body).to include("Your Games")
+      expect(response.body).to include(scrabble_with_friends.game_path(@game))
+    end
+  end
+
+  context "new" do
+    it "renders" do
+      get scrabble_with_friends.new_game_path
+      expect(response.status).to eq(200)
     end
   end
 
   context "create" do
-    it "creates a new game without password" do
+    it "creates a new game without name" do
       post scrabble_with_friends.games_path, params: {}
       expect(response.status).to eq(302)
       @game = assigns(:game)
       expect(response).to redirect_to(scrabble_with_friends.game_path(@game))
     end
 
-    it "creates a new game with password" do
-      post scrabble_with_friends.games_path, params: {password: "some-password"}
+    it "creates a new game with name" do
+      post scrabble_with_friends.games_path, params: {name: "some-name"}
       expect(response.status).to eq(302)
       @game = assigns(:game)
       expect(response).to redirect_to(scrabble_with_friends.game_path(@game))
-      expect(@game.password).to eq("some-password")
+      expect(@game.name).to eq("some-name")
     end
 
     it "finds existing game and renders errors" do
-      create_game
-      create_turn
-      @game.players.destroy_all
-      post scrabble_with_friends.games_path, params: {password: @game.password}
+      name = "foo"
+
+      post scrabble_with_friends.games_path, params: {name: name}
+      expect(response.status).to eq(302)
+      expect(response).to redirect_to(scrabble_with_friends.game_path(assigns(:game)))
+
+      post scrabble_with_friends.games_path, params: {name: name}
       expect(response.status).to eq(302)
       expect(response).to redirect_to(scrabble_with_friends.games_path)
-      expect(flash[:alert]).to include("Game not saved. Please choose a different password.")
+      expect(flash[:alert]).to include("Game not saved. Please choose a different name.")
     end
   end
 
@@ -80,10 +107,19 @@ RSpec.describe ScrabbleWithFriends::GamesController, type: :request do
       create_game
     end
 
-    it "renders" do
+    it "renders waiting for game" do
       get scrabble_with_friends.game_path(@game)
       expect(response.status).to eq(200)
       expect(response.body).to include("board-square")
+      expect(response.body).to include("Waiting to Start Game")
+    end
+
+    it "renders game started" do
+      create_turn
+      get scrabble_with_friends.game_path(@game)
+      expect(response.status).to eq(200)
+      expect(response.body).to include("board-square")
+      expect(response.body).to include("Current Player")
     end
   end
 
@@ -304,6 +340,18 @@ RSpec.describe ScrabbleWithFriends::GamesController, type: :request do
       expect(response.status).to eq(302)
       expect(response).to redirect_to(scrabble_with_friends.game_path(@game))
       expect(@game.turns.reload.size).to eq(0)
+    end
+  end
+
+  context "destroy" do
+    before do
+      create_game
+    end
+
+    it "deletes the game" do
+      delete scrabble_with_friends.game_path(@game)
+      expect(response).to redirect_to(scrabble_with_friends.games_path)
+      expect(ScrabbleWithFriends::Game.find_by(id: @game.id)).to eq(nil)
     end
   end
 end

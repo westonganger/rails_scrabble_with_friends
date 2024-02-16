@@ -9,6 +9,12 @@
   --body-bg-color: #F5F6F6;
 }
 
+body{
+  background-color: var(--body-bg-color);
+  padding-bottom: 20px;
+  padding-top: calc(var(--navbar-height) + 20px);
+}
+
 a{
   color: inherit;
 }
@@ -21,6 +27,7 @@ a:hover, a:focus{
 .navbar{
   min-height: var(--navbar-height);
   background-color: var(--body-bg-color);
+  margin-bottom: 0;
 }
 
 .navbar a{
@@ -52,12 +59,6 @@ a:hover, a:focus{
 h1, h2, h3, h4, h5{
   margin-top: 0px;
   color: #424242;
-}
-
-body{
-  background-color: var(--body-bg-color);
-  padding-bottom: 20px;
-  padding-top: 80px;
 }
 
 label{

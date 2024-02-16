@@ -27,7 +27,7 @@ RSpec.describe ScrabbleWithFriends::SessionsController, type: :request do
     end
 
     it "redirects to requested game" do
-      @game = ScrabbleWithFriends::Game.create!(password: "foo")
+      @game = ScrabbleWithFriends::Game.create!(name: "foo")
       get scrabble_with_friends.game_path("foo")
       assert_equal(response.status, 302)
       assert_redirected_to scrabble_with_friends.sign_in_path
