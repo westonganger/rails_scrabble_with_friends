@@ -11,15 +11,15 @@ Features:
 
 ## Screenshots
 
-<img src="/screenshot_desktop.png" alt="Screenshot: Desktop" width="500px" /> <img src="/screenshot_mobile.png" alt="Screenshot: Mobile" width="200px" align="top" />
+<img src="/screenshots/screenshot_desktop.png" alt="Screenshot: Desktop" width="500px" /> <img src="/screenshots/screenshot_mobile.png" alt="Screenshot: Mobile" width="200px" align="top" />
 
-<img src="/screenshot_sign_in.png" alt="Screenshot: Sign In" width="500px" />
+<img src="/screenshots/screenshot_sign_in.png" alt="Screenshot: Sign In" width="500px" />
 
-<img src="/screenshot_start_new_game.png" alt="Screenshot: Start New Game" width="500px" />
+<img src="/screenshots/screenshot_start_new_game.png" alt="Screenshot: Start New Game" width="500px" />
 
-<img src="/screenshot_games_index.png" alt="Screenshot: Find or create game" width="500px" />
+<img src="/screenshots/screenshot_games_index.png" alt="Screenshot: Find or create game" width="500px" />
 
-<img src="/screenshot_waiting_to_start_game.png" alt="Screenshot: Waiting to Start Game" width="500px" />
+<img src="/screenshots/screenshot_waiting_to_start_game.png" alt="Screenshot: Waiting to Start Game" width="500px" />
 
 
 ## Demo / Play

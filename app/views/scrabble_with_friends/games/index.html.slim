@@ -46,7 +46,7 @@
               td = game.updated_at.to_date
 
               td
-                - if !game.current_player || vs_players.empty?
+                - if game.current_player.nil? || vs_players.empty?
                   = link_to game_path(game), method: :delete, title: "Delete game", "data-confirm" => "Are you sure you want to delete this game?", class: "btn btn-danger btn-xs space-left" do
                     i.icon-trash
 

@@ -21,7 +21,7 @@ module ScrabbleWithFriends
 
     scope :inactive_games, -> { where("#{ScrabbleWithFriends::Game.table_name}.updated_at <= ?", 60.days.ago) }
     scope :orphaned_games, -> { left_joins(:players).where(players: {id: nil}) }
-    scope :for_user, ->(username) { joins(:players).where(players: {username: Current.username}) }
+    scope :for_user, ->(username) { left_joins(:players).where(players: {username: Current.username}) }
 
     before_validation do
       if name.present?
@@ -97,7 +97,7 @@ module ScrabbleWithFriends
     end
 
     def active_players
-      players.reject { |x| x.forfeitted? || x.tiles.empty? }
+      players.select(&:active?)
     end
 
     def last_turn
