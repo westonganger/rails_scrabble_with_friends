@@ -119,4 +119,14 @@ javascript:
           .appendTo(board_square);
       },
     });
+
+    $("#shuffle-tiles").click(function(){
+      var container = $("#player-tiles");
+
+      var shuffled_tiles = container.children(".tile.moveable").sort(function(){
+        return Math.random() - 0.5;
+      }).detach();
+
+      shuffled_tiles.prependTo(container);
+    });
   });

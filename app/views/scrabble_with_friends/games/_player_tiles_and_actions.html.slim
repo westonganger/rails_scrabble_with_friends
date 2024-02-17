@@ -9,6 +9,10 @@
       - this_player.tiles.each do |letter|
         = tile(letter: letter, moveable: @is_current_player)
 
+      - if this_player.tiles.any?
+        .tile.tile-letter.player-action#shuffle-tiles title="Shuffle tiles in hand"
+          = render "shuffle_svg"
+
       - if @is_current_player
         .tile.tile-letter.player-action title="Restart Turn"
           = link_to request.path, "data-confirm" => "Are you sure you want to reset your turn?", style: "text-decoration: none;" do
