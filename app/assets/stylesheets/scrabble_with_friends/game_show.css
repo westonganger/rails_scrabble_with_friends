@@ -178,4 +178,22 @@
     height: var(--player-tile-size);
     width: var(--player-tile-size);
   }
+
+  .board.zoomed-out{
+    grid-template-rows: repeat(var(--board-size), 20px);
+    grid-template-columns: repeat(var(--board-size), 20px);
+    line-height: 1;
+    font-size: 6px;
+    gap: 2px;
+  }
+
+  .board.zoomed-out .tile-letter{
+    font-size: 12px;
+  }
+
+  .board.zoomed-out .tile-points{
+    font-size: 5px;
+    bottom: 1px;
+    right: 1px;
+  }
 } /*END Small Screen Sizes */
