@@ -13,5 +13,9 @@ module ScrabbleWithFriends
     def active?
       !forfeitted? && !tiles.empty?
     end
+
+    def has_email?
+      username.match?(/.*@.*\..*/)
+    end
   end
 end

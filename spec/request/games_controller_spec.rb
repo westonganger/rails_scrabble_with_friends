@@ -19,12 +19,14 @@ RSpec.describe ScrabbleWithFriends::GamesController, type: :request do
     @game
   end
 
-  def create_player
-    @game.players.create!(username: SecureRandom.hex(6))
+  def create_player(username: nil)
+    @game.players.create!(
+      username: username || SecureRandom.hex(6),
+    )
   end
 
-  def create_turn
-    player = @game.players.first
+  def create_turn(player: nil)
+    player ||= @game.players.first
 
     @game.create_turn!(
       player: player,
@@ -154,6 +156,8 @@ RSpec.describe ScrabbleWithFriends::GamesController, type: :request do
 
       expect(@game.turns.size).to eq(0)
 
+      expect(ScrabbleWithFriends::ApplicationMailer).not_to receive(:its_your_turn).and_call_original
+
       post scrabble_with_friends.take_turn_game_path(@game), params: {
         game: {
           tiles_played: {
@@ -168,6 +172,48 @@ RSpec.describe ScrabbleWithFriends::GamesController, type: :request do
 
       expect(@game.turns.reload.size).to eq(1)
     end
+
+    it "sends email when username is email address" do
+      player_1 = @game.players.first
+      player_1.update_columns(tiles: ["F","O","O","S"])
+
+      player_2 = create_player(username: "foo@bar.com")
+
+      expect(@game.turns.size).to eq(0)
+
+      expect(ScrabbleWithFriends::ApplicationMailer).to receive(:its_your_turn).with(game_url: anything, email: player_2.username).and_call_original
+
+      post scrabble_with_friends.take_turn_game_path(@game), params: {
+        game: {
+          tiles_played: {
+            "0" => {letter: "F", cell: [7,7]},
+            "1" =>{letter: "O", cell: [7,8]},
+            "2" =>{letter: "O", cell: [7,9]},
+          },
+        }
+      }
+    end
+
+    it "sends email when game over" do
+      player_1 = @game.players.first
+      player_1.update_columns(tiles: ["F","O","O"])
+
+      player_2 = create_player(username: "foo@bar.com")
+
+      expect(@game.turns.size).to eq(0)
+
+      expect(ScrabbleWithFriends::ApplicationMailer).to receive(:game_over).with(game_url: anything, emails: [player_2.username], winning_player_username: player_1.username).and_call_original
+
+      post scrabble_with_friends.take_turn_game_path(@game), params: {
+        game: {
+          tiles_played: {
+            "0" => {letter: "F", cell: [7,7]},
+            "1" =>{letter: "O", cell: [7,8]},
+            "2" =>{letter: "O", cell: [7,9]},
+          },
+        }
+      }
+    end
   end
 
   context "undo_turn" do
@@ -178,10 +224,28 @@ RSpec.describe ScrabbleWithFriends::GamesController, type: :request do
     it "deletes the turn" do
       create_turn
       expect(@game.turns.size).to eq(1)
+
+      expect(ScrabbleWithFriends::ApplicationMailer).not_to receive(:its_your_turn).and_call_original
+
       post scrabble_with_friends.undo_turn_game_path(@game)
       expect(response.status).to eq(302)
       expect(response).to redirect_to(scrabble_with_friends.game_path(@game))
       expect(@game.turns.reload.size).to eq(0)
+    end
+
+    it "sends email if username is an email address" do
+      player_1 = @game.players.first
+      player_1.update_columns(username: "foo@bar.com")
+
+      player_2 = create_player
+
+      create_turn
+
+      expect(@game.turns.size).to eq(1)
+
+      expect(ScrabbleWithFriends::ApplicationMailer).to receive(:its_your_turn).with(game_url: anything, email: player_1.username).and_call_original
+
+      post scrabble_with_friends.undo_turn_game_path(@game)
     end
 
     it "removes the score from the player" do
@@ -271,10 +335,49 @@ RSpec.describe ScrabbleWithFriends::GamesController, type: :request do
 
     it "forfeits if current player" do
       expect(@game.players.first.forfeitted).to eq(false)
+
+      expect(ScrabbleWithFriends::ApplicationMailer).not_to receive(:its_your_turn).and_call_original
+
       post scrabble_with_friends.forfeit_game_path(@game)
       expect(response.status).to eq(302)
       expect(response).to redirect_to(scrabble_with_friends.game_path(@game))
+
       expect(@game.players.first.reload.forfeitted).to eq(true)
+    end
+
+    it "sends email when username is email address" do
+      player_2 = create_player
+
+      player_3 = create_player(username: "player3@foo.com")
+
+      create_turn
+
+      logout
+      sign_in(player_2.username)
+
+      expect(ScrabbleWithFriends::ApplicationMailer).to receive(:its_your_turn).with(game_url: anything, email: player_3.username).and_call_original
+
+      post scrabble_with_friends.forfeit_game_path(@game)
+      expect(response.status).to eq(302)
+      expect(response).to redirect_to(scrabble_with_friends.game_path(@game))
+    end
+
+    it "sends email when game over" do
+      player_1 = @game.players.first
+      player_1.update_columns(username: "foo@bar.com")
+
+      player_2 = create_player(username: "player2@foo.com")
+
+      create_turn(player: player_1)
+
+      logout
+      sign_in(player_2.username)
+
+      expect(ScrabbleWithFriends::ApplicationMailer).to receive(:game_over).with(game_url: anything, emails: [player_1.username], winning_player_username: player_1.username).and_call_original
+
+      post scrabble_with_friends.forfeit_game_path(@game)
+      expect(response.status).to eq(302)
+      expect(response).to redirect_to(scrabble_with_friends.game_path(@game))
     end
   end
 

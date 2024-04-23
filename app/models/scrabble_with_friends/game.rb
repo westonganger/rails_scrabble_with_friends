@@ -44,7 +44,11 @@ module ScrabbleWithFriends
     end
 
     def game_over?
-      active_players.none?
+      if players.size == 1
+        active_players.none?
+      else
+        active_players.size <= 1
+      end
     end
 
     def restart!
