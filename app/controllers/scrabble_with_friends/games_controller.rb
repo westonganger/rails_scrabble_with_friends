@@ -94,6 +94,19 @@ module ScrabbleWithFriends
 
       _user_current_player.update!(forfeitted: true, tiles: [])
 
+      if @game.game_over?
+        ScrabbleWithFriends::ApplicationMailer.game_over(
+          game_url: game_url(@game),
+          emails: (@game.players.select(&:has_email?).map(&:username) - [current_username]),
+          winning_player_username: @game.players.max_by(&:score).username,
+        ).deliver_later
+      elsif @game.current_player&.has_email? && @game.current_player.username != current_username
+        ScrabbleWithFriends::ApplicationMailer.its_your_turn(
+          game_url: game_url(@game),
+          email: @game.current_player.username,
+        ).deliver_later
+      end
+
       _broadcast_changes
 
       redirect_to(action: :show)
@@ -125,6 +138,13 @@ module ScrabbleWithFriends
         )
 
         last_turn.destroy!
+      end
+
+      if last_player&.has_email? && last_player.username != current_username
+        ScrabbleWithFriends::ApplicationMailer.its_your_turn(
+          game_url: game_url(@game),
+          email: last_player.username,
+        ).deliver_later
       end
 
       _broadcast_changes
@@ -163,6 +183,19 @@ module ScrabbleWithFriends
             tiles_played: _tiles_played,
             score: @words.sum{|h| h.fetch(:points) },
           )
+        end
+
+        if @game.game_over?
+          ScrabbleWithFriends::ApplicationMailer.game_over(
+            game_url: game_url(@game),
+            emails: (@game.players.select(&:has_email?).map(&:username) - [current_username]),
+            winning_player_username: @game.players.max_by(&:score).username,
+          ).deliver_later
+        elsif @game.current_player&.has_email? && @game.current_player.username != current_username
+          ScrabbleWithFriends::ApplicationMailer.its_your_turn(
+            game_url: game_url(@game),
+            email: @game.current_player.username,
+          ).deliver_later
         end
 
         _broadcast_changes
