@@ -8,39 +8,45 @@ module ScrabbleWithFriends
       hostname = game_url.split("://").last.split("/").first
 
       mail(to: email, subject: subject, from: "no-reply@#{hostname}") do |f|
-        f.html <<~STR
-          <h2>#{subject}</h2>
+        f.html do
+          <<~STR
+            <h2>#{subject}</h2>
 
-          <a href="#{game_url}">#{game_url}</a>
-        STR
+            <a href="#{game_url}">#{game_url}</a>
+          STR
+        end
 
-        f.text <<~STR
-          #{subject}
+        f.text do
+          <<~STR
+            #{subject}
 
-          #{game_url}
-        STR
+            #{game_url}
+          STR
+        end
       end
     end
 
     def game_over(emails:, game_url:, winning_player_username:)
-      winning_player = game.players.max_by(&:score)
-
       subject = "#{winning_player_username} has won your Scrabble with Friends game"
 
       hostname = game_url.split("://").last.split("/").first
 
       mail(to: emails, subject: subject, from: "no-reply@#{hostname}") do |f|
-        f.html <<~STR
-          <h2>#{subject}</h2>
+        f.html do
+            <<~STR
+            <h2>#{subject}</h2>
 
-          <a href="#{game_url}">#{game_url}</a>
-        STR
+            <a href="#{game_url}">#{game_url}</a>
+          STR
+        end
 
-        f.text <<~STR
-          #{subject}
+        f.text do
+          <<~STR
+            #{subject}
 
-          #{game_url}
-        STR
+            #{game_url}
+          STR
+        end
       end
     end
 
