@@ -202,7 +202,11 @@ RSpec.describe ScrabbleWithFriends::GamesController, type: :request do
 
       expect(@game.turns.size).to eq(0)
 
-      expect(ScrabbleWithFriends::ApplicationMailer).to receive(:game_over).with(game_url: anything, emails: [player_2.username], winning_player_username: player_1.username).and_call_original
+      expect(ScrabbleWithFriends::ApplicationMailer).to receive(:game_over).with(
+        game_url: anything,
+        email_addresses: [player_2.username],
+        winning_player_username: player_1.username,
+      ).and_call_original
 
       post scrabble_with_friends.take_turn_game_path(@game), params: {
         game: {
@@ -373,7 +377,11 @@ RSpec.describe ScrabbleWithFriends::GamesController, type: :request do
       logout
       sign_in(player_2.username)
 
-      expect(ScrabbleWithFriends::ApplicationMailer).to receive(:game_over).with(game_url: anything, emails: [player_1.username], winning_player_username: player_1.username).and_call_original
+      expect(ScrabbleWithFriends::ApplicationMailer).to receive(:game_over).with(
+        game_url: anything,
+        email_addresses: [player_1.username],
+        winning_player_username: player_1.username,
+      ).and_call_original
 
       post scrabble_with_friends.forfeit_game_path(@game)
       expect(response.status).to eq(302)

@@ -18,7 +18,7 @@ RSpec.describe ScrabbleWithFriends::ApplicationMailer, type: :model do
       expect {
         described_class.game_over(
           game_url: "https://scrabble.example.com/games/123",
-          emails: ["foo@example.com", "bar@example.com"],
+          email_addresses: ["foo@example.com", "bar@example.com"],
           winning_player_username: "bar@example.com",
         ).deliver_now
       }.to change { ActionMailer::Base.deliveries.count }.by(1)

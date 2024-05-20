@@ -26,12 +26,12 @@ module ScrabbleWithFriends
       end
     end
 
-    def game_over(emails:, game_url:, winning_player_username:)
+    def game_over(email_addresses:, game_url:, winning_player_username:)
       subject = "#{winning_player_username} has won your Scrabble with Friends game"
 
       hostname = game_url.split("://").last.split("/").first
 
-      mail(to: emails, subject: subject, from: "no-reply@#{hostname}") do |f|
+      mail(to: email_addresses, subject: subject, from: "no-reply@#{hostname}") do |f|
         f.html do
             <<~STR
             <h2>#{subject}</h2>

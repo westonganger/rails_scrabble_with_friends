@@ -95,16 +95,20 @@ module ScrabbleWithFriends
       _user_current_player.update!(forfeitted: true, tiles: [])
 
       if @game.game_over?
-        ScrabbleWithFriends::ApplicationMailer.game_over(
-          game_url: game_url(@game),
-          emails: (@game.players.select(&:has_email?).map(&:username) - [current_username]),
-          winning_player_username: @game.players.max_by(&:score).username,
-        ).deliver_later
+        email_addresses = @game.players.select(&:has_email?).map(&:username) - [current_username]
+
+        if email_addresses.any?
+          ScrabbleWithFriends::ApplicationMailer.game_over(
+            game_url: game_url(@game),
+            email_addresses: (@game.players.select(&:has_email?).map(&:username) - [current_username]),
+            winning_player_username: @game.players.max_by(&:score).username,
+          ).deliver_now
+        end
       elsif @game.current_player&.has_email? && @game.current_player.username != current_username
         ScrabbleWithFriends::ApplicationMailer.its_your_turn(
           game_url: game_url(@game),
           email: @game.current_player.username,
-        ).deliver_later
+        ).deliver_now
       end
 
       _broadcast_changes
@@ -144,7 +148,7 @@ module ScrabbleWithFriends
         ScrabbleWithFriends::ApplicationMailer.its_your_turn(
           game_url: game_url(@game),
           email: last_player.username,
-        ).deliver_later
+        ).deliver_now
       end
 
       _broadcast_changes
@@ -186,16 +190,20 @@ module ScrabbleWithFriends
         end
 
         if @game.game_over?
-          ScrabbleWithFriends::ApplicationMailer.game_over(
-            game_url: game_url(@game),
-            emails: (@game.players.select(&:has_email?).map(&:username) - [current_username]),
-            winning_player_username: @game.players.max_by(&:score).username,
-          ).deliver_later
+          email_addresses = @game.players.select(&:has_email?).map(&:username) - [current_username]
+
+          if email_addresses.any?
+            ScrabbleWithFriends::ApplicationMailer.game_over(
+              game_url: game_url(@game),
+              email_addresses: email_addresses,
+              winning_player_username: @game.players.max_by(&:score).username,
+            ).deliver_now
+          end
         elsif @game.current_player&.has_email? && @game.current_player.username != current_username
           ScrabbleWithFriends::ApplicationMailer.its_your_turn(
             game_url: game_url(@game),
             email: @game.current_player.username,
-          ).deliver_later
+          ).deliver_now
         end
 
         _broadcast_changes
