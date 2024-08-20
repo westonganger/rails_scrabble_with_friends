@@ -299,7 +299,7 @@ RSpec.describe ScrabbleWithFriends::GamesController, type: :request do
         }
       }
       expect(response.status).to eq(200)
-      expect(response.parsed_body).to match({
+      expect(response.parsed_body.with_indifferent_access).to match({
         errors: [
           "Played tiles are not all beside eachother",
           "Invalid tile placement",
@@ -320,7 +320,7 @@ RSpec.describe ScrabbleWithFriends::GamesController, type: :request do
         }
       }
       expect(response.status).to eq(200)
-      expect(response.parsed_body).to match({
+      expect(response.parsed_body.with_indifferent_access).to match({
         words: [
           {
             word: "FOO",
