@@ -22,8 +22,36 @@ div.text-center
             - if player.forfeitted?
               = " (Forfeitted)"
 
-            - if game_current_player&.id == player.id
+            - if game_current_player && game_current_player.id == player.id
               = " (Current Player)"
+
+              - if ScrabbleWithFriends.config.web_push_enabled? && current_user_player
+                - if player.id == current_user_player.id
+                  button#allow-web-push-notifications.btn.btn-xs.btn-transparent.center-block.space-above style="display: none;" type="button" Enable Notifications
+                - elsif player.id != current_user_player.id && player.id == game_current_player.id && (player.has_email? || !player.web_push_subscriptions.empty?)
+                    button#send-turn-reminder.btn.btn-xs.btn-transparent.space-above.center-block type="button" Still Waiting? Send turn reminder
+
+                    javascript:
+                      $(function(){
+                        $("button#send-turn-reminder").click(function(){
+                          var btn = $(this);
+
+                          if(!confirm("You can send a notification to the current player to take their turn.\n\nDo you want to trigger this notification?")){
+                            return false;
+                          }
+
+                          $.ajax({
+                            url: "#{send_web_push_notification_game_path(@game)}",
+                            method: "POST",
+                          }).done(function(){
+                            btn.hide();
+
+                            setTimeout(function(){
+                              window.alert("Notification sent");
+                            }, 500);
+                          });
+                        });
+                      });
 
             - if !@game.started? && num_players >= 2
               = link_to remove_player_game_path(@game, player_id: player.id), class: "btn btn-xs btn-danger space-left2", "data-confirm" => "Are you sure you want to remove this player from the game?", "data-method" => :post do

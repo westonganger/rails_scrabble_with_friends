@@ -1,6 +1,7 @@
 require 'slim'
 require 'hashids'
 require "sprockets/railtie"
+require "web-push"
 
 module ScrabbleWithFriends
   class Engine < ::Rails::Engine

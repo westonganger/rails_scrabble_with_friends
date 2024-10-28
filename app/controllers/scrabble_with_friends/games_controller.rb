@@ -6,6 +6,7 @@ module ScrabbleWithFriends
     before_action :_fetch_game, except: [:index, :new, :create]
     before_action :_ensure_current_user_in_game!, except: [:index, :new, :create, :show, :add_player]
     before_action :_ensure_its_current_users_turn!, only: [:take_turn]
+    before_action :render_404, only: [:send_web_push_notification, :create_web_push_subscription], if: -> { !ScrabbleWithFriends.config.web_push_enabled? }
 
     helper_method :current_user_player
     helper_method :game_current_player
@@ -88,22 +89,10 @@ module ScrabbleWithFriends
     def forfeit
       current_user_player.update!(forfeitted: true, tiles: [])
 
-      if @game.game_over?
-        email_addresses = @game.players.select(&:has_email?).map(&:username) - [current_username]
+      @game_current_player = nil
+      _fetch_game
 
-        if email_addresses.any?
-          ScrabbleWithFriends::ApplicationMailer.game_over(
-            game_url: game_url(@game),
-            email_addresses: (@game.players.select(&:has_email?).map(&:username) - [current_username]),
-            winning_player_username: @game.players.max_by(&:score).username,
-          ).deliver_now
-        end
-      elsif game_current_player && game_current_player.has_email? && game_current_player.id != current_user_player.id
-        ScrabbleWithFriends::ApplicationMailer.its_your_turn(
-          game_url: game_url(@game),
-          email: game_current_player.username,
-        ).deliver_now
-      end
+      _send_notifications!
 
       _broadcast_changes
 
@@ -116,7 +105,8 @@ module ScrabbleWithFriends
       last_player = last_turn.player
 
       if last_player.forfeitted?
-        redirect_to(action: :show, alert: "Cannot undo, last player forfeitted the game")
+        flash[:alert] = "Cannot undo, last player forfeitted the game"
+        redirect_to(action: :show)
         return
       end
 
@@ -137,12 +127,10 @@ module ScrabbleWithFriends
         last_turn.destroy!
       end
 
-      if last_player&.has_email? && last_player.username != current_username
-        ScrabbleWithFriends::ApplicationMailer.its_your_turn(
-          game_url: game_url(@game),
-          email: last_player.username,
-        ).deliver_now
-      end
+      @game_current_player = nil
+      _fetch_game
+
+      _send_its_your_turn_notifications!(last_player)
 
       _broadcast_changes
 
@@ -174,22 +162,10 @@ module ScrabbleWithFriends
           score: @words.sum{|h| h.fetch(:points) },
         )
 
-        if @game.game_over?
-          email_addresses = @game.players.select(&:has_email?).map(&:username) - [current_username]
+        @game_current_player = nil
+        _fetch_game
 
-          if email_addresses.any?
-            ScrabbleWithFriends::ApplicationMailer.game_over(
-              game_url: game_url(@game),
-              email_addresses: email_addresses,
-              winning_player_username: @game.players.max_by(&:score).username,
-            ).deliver_now
-          end
-        elsif game_current_player && game_current_player.has_email? && game_current_player.id != current_user_player.id
-          ScrabbleWithFriends::ApplicationMailer.its_your_turn(
-            game_url: game_url(@game),
-            email: game_current_player.username,
-          ).deliver_now
-        end
+        _send_notifications!
 
         _broadcast_changes
 
@@ -232,6 +208,50 @@ module ScrabbleWithFriends
       @game.destroy!
 
       redirect_to(action: :index)
+    end
+
+    def send_web_push_notification
+      if !game_current_player
+        flash[:alert] = "Action not permitted, its not anyones turn"
+        redirect_to(action: :show)
+        return
+      end
+
+      notification_message = "#{current_user_player.username} sent your a reminder for you to play your turn on your #{ScrabbleWithFriends::APP_NAME} game."
+
+      subscriptions = game_current_player.web_push_subscriptions
+
+      _send_web_push_notifications!(
+        title: notification_message,
+        body: notification_message,
+        url: game_url(@game),
+        subscriptions: game_current_player.web_push_subscriptions,
+      )
+
+      head :ok
+    end
+
+    def create_web_push_subscription
+      push_subscription_attrs = {
+        endpoint: params.require(:endpoint),
+        p256dh: params.require(:keys).require(:p256dh),
+        auth: params.require(:keys).require(:auth),
+        game_id: @game.id,
+      }
+
+      subscription = current_user_player.web_push_subscriptions
+        .where(game_id: @game.id)
+        .find_by(push_subscription_attrs)
+
+      if subscription
+        subscription.touch
+      else
+        push_subscription_attrs[:user_agent] = request.user_agent, # nice to have field, serves to actual purpose other than debugging support
+
+        current_user_player.web_push_subscriptions.create!(push_subscription_attrs)
+      end
+
+      head :ok
     end
 
     private
@@ -594,6 +614,87 @@ module ScrabbleWithFriends
         flash[:alert] = "Cannot perform this action. It is not your turn."
         redirect_to(action: :show)
       end
+    end
+
+    def _send_web_push_notifications!(title:, body:, url:, subscriptions:)
+      return false if !ScrabbleWithFriends.config.web_push_enabled?
+
+      subscriptions.each do |s|
+        WebPush.payload_send(
+          message: JSON.generate({
+            title: title,
+            body: body,
+            data: {
+              url: url,
+            },
+            icon: ActionController::Base.helpers.image_url("scrabble_with_friends/favicon.ico"), # TODO use png file, the 192px version
+          }),
+          endpoint: s.endpoint,
+          p256dh: s.p256dh,
+          auth: s.auth,
+          #ttl: 0, # optional, ttl in seconds, defaults to 2419200 (4 weeks), 0 means only currently connected browsers
+          vapid: {
+            subject: request.domain,
+            public_key: ScrabbleWithFriends.config.web_push_vapid_public_key,
+            private_key: ScrabbleWithFriends.config.web_push_vapid_private_key,
+          },
+        )
+      end
+
+      return true
+    end
+
+    def _send_notifications!
+      if @game.game_over?
+        _send_game_over_notifications!
+        return true
+      end
+
+      if game_current_player && game_current_player.id != current_user_player.id
+        _send_its_your_turn_notifications!(game_current_player)
+      end
+    end
+
+    def _send_game_over_notifications!
+      winning_player_username = @game.players.max_by(&:score).username
+
+      notification_message = "#{winning_player_username} has won your #{ScrabbleWithFriends::APP_NAME} game"
+
+      email_addresses = @game.players.select(&:has_email?).map(&:username) - [current_username]
+
+      if email_addresses.any?
+        ScrabbleWithFriends::ApplicationMailer.game_email(
+          subject: notification_message,
+          game_url: game_url(@game),
+          email_addresses: email_addresses,
+        ).deliver_now
+
+        _send_web_push_notifications!(
+          title: notification_message,
+          body: notification_message,
+          url: game_url(@game),
+          subscriptions: @game.web_push_subscriptions,
+        )
+      end
+    end
+
+    def _send_its_your_turn_notifications!(player)
+      notification_message = "Its your turn to play on your #{ScrabbleWithFriends::APP_NAME} game"
+
+      if player.has_email?
+        ScrabbleWithFriends::ApplicationMailer.game_email(
+          subject: notification_message,
+          game_url: game_url(@game),
+          email_addresses: [player.username],
+        ).deliver_now
+      end
+
+      _send_web_push_notifications!(
+        title: notification_message,
+        body: notification_message,
+        url: game_url(@game),
+        subscriptions: player.web_push_subscriptions,
+      )
     end
 
     YOUR_GAMES_SESSION_KEY = :scrabble_with_friends_your_game_ids

@@ -18,5 +18,10 @@ module Dummy
     # the framework and any gems in your application.
 
     config.eager_load = true ### to catch more bugs in development/test environments
+
+    if Rails.env.development?
+      ScrabbleWithFriends.config.web_push_vapid_public_key = "BBj2BQJdncdLjKbnYqWue5KffyeGlidA1Bt1YBR8ecEn-IIwVVt1ybD61YWtEgNykbEAuJhMJENVLj1GDDu71V8".freeze
+      ScrabbleWithFriends.config.web_push_vapid_private_key = "sqqwmD4JEb9pjB29NHqwBOnj2bmQ_wyY-DmO9lO2XTk=".freeze
+    end
   end
 end

@@ -83,6 +83,33 @@ mount ScrabbleWithFriends::Engine, at: "/scrabble_with_friends", as: "scrabble_w
 mount ScrabbleWithFriends::Engine, at: "/", as: "scrabble_with_friends"
 ```
 
+## Web push notifications
+
+Web push notifications are available and can be enabled by setting the vapid public/private keys in the config
+
+```
+# config/initializers/scrabble_with_friends.rb
+
+ScrabbleWithFriends.config do |config|
+  config.web_push_vapid_public_key = "some-vapid-public-key"
+  config.web_push_vapid_private_key = "some-vapid-private-key"
+end
+```
+
+You can generate the web_push vapid keys using the following:
+
+```
+require 'web-push'
+
+generated_vapid_key = WebPush.generate_key
+
+public_key = generated_vapid_key.public_key.delete("=")
+# => "BC1mp...HQ"
+
+private_key = generated_vapid_key.private_key
+# => "XhGUr...Kec"
+```
+
 ## Development
 
 Run migrations using: `rails db:migrate`

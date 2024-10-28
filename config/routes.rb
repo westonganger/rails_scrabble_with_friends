@@ -14,8 +14,14 @@ ScrabbleWithFriends::Engine.routes.draw do
 
       post :add_player
       post :remove_player
+
+      post :send_web_push_notification
+      post :create_web_push_subscription, constraints: {format: :json}
     end
   end
+
+  get "service-worker", to: "pwa#service_worker", as: :pwa_service_worker, constraints: {format: :js}
+  get "manifest", to: "pwa#manifest", as: :pwa_manifest, constraints: {format: :json}
 
   get '/robots', to: 'application#robots', constraints: ->(req){ req.format == :text }
 
