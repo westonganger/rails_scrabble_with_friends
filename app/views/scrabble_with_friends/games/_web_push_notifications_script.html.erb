@@ -1,0 +1,92 @@
+<script>
+  document.addEventListener('DOMContentLoaded', function(){
+    if (!window.PushManager) {
+      console.warn('Push messaging is not supported in your browser: window.PushManager');
+      return false;
+    elsif (!window.Notification) {
+      console.warn('Push messaging is not supported in your browser: windowNotification');
+      return false;
+    } else if (!ServiceWorkerRegistration.prototype.showNotification) {
+      console.warn('Notifications are not supported in your browser: !ServiceWorkerRegistration.prototype.showNotification');
+      return false;
+    } else {
+      const registerServiceWorker = async () => {
+        if (navigator.serviceWorker) {
+          try {
+            await navigator.serviceWorker.register('/service-worker.js');
+            console.log('Service worker registered!');
+          } catch (error) {
+            console.error('Error registering service worker: ', error);
+          }
+        }
+      };
+
+      // Request permission from the user to send notifications
+      Notification
+        .requestPermission()
+        .then(function(permission){
+          if(permission === "granted"){
+            registerServiceWorker();
+          }else if(permission === "denied"){
+            console.warn("User rejected to allow notifications.");
+            return false;
+          }else{
+            console.warn("User has not yet accepted notifications.");
+            return false;
+          }
+        });
+
+      const vapidPublicKey = document.querySelector(
+        'meta[name="vapid-public-key"]',
+      ).content;
+
+      const csrf_token = document.querySelector('meta[name="csrf-token"]').getAttribute("content");
+
+      var webPushSubscribe = async () => {
+        const registration = await navigator.serviceWorker.ready;
+
+        let subscription = await registration.pushManager.getSubscription();
+
+        if(!subscription){
+          subscription = await serviceWorkerRegistration.pushManager
+            .subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: vapidPublicKey,
+            })
+            .then(function(subscription){
+              saveSubscriptionToBackend(subscription);
+            });
+        }
+
+        return subscription;
+      };
+
+      var saveSubscriptionToBackend = function(subscription){
+        fetch("<%= create_web_push_subscription_game_path(@game) %>", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+            "X-CSRF-Token": csrf_token,
+          },
+          body: JSON.stringify({
+            endpoint: subscription.endpoint,
+            p256dh: subscription.keys.p256dh,
+            auth: subscription.keys.auth_key,
+          }),
+        }).then(function(response){
+          if(response.ok){
+            console.log("Subscription successfully saved on the server.");
+            return true;
+          } else {
+            console.error("Error saving subscription on the server.");
+            return false;
+          }
+        }).catch(function(error){
+          console.error("Error sending subscription to the server:", error);
+          return false;
+        });
+      }
+    }
+  }
+</script>

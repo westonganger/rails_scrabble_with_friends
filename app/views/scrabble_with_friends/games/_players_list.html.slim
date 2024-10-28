@@ -25,6 +25,9 @@ div.text-center
             - if game_current_player&.id == player.id
               = " (Current Player)"
 
+              - if ScrabbleWithFriends.config.web_push_enabled? && current_user_player && current_user_player.id == game_current_player.id
+                = link_to "Still waiting? Send a reminder notification", send_turn_reminder_game_path(@game), "data-method" => :post, "data-confirm" => "Send turn reminder notification?"
+
             - if !@game.started? && num_players >= 2
               = link_to remove_player_game_path(@game, player_id: player.id), class: "btn btn-xs btn-danger space-left2", "data-confirm" => "Are you sure you want to remove this player from the game?", "data-method" => :post do
                 i.icon-trash

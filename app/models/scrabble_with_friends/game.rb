@@ -2,6 +2,7 @@ module ScrabbleWithFriends
   class Game < ApplicationRecord
     has_many :players, class_name: "ScrabbleWithFriends::Player", dependent: :destroy
     has_many :turns, class_name: "ScrabbleWithFriends::Turn", dependent: :destroy
+    has_many :web_push_subscriptions, class_name: "ScrabbleWithFriends::WebPushSubscription", dependent: :destroy
 
     validate do
       next if persisted? || name.nil?
