@@ -1,19 +1,14 @@
-- if @game.turns.none?
-  - this_player = @game.players.detect{|x| x.username == current_username }
-- else
-  - this_player = @game.active_players.detect{|x| x.username == current_username }
-
-- if this_player
+- if current_user_player && (current_user_player.active? || @game.turns.none?)
   #player-actions-container
     #player-tiles
-      - this_player.tiles.each do |letter|
-        = tile(letter: letter, moveable: @is_current_player)
+      - current_user_player.tiles.each do |letter|
+        = tile(letter: letter, moveable: @permitted_to_take_turn)
 
-      - if this_player.tiles.any?
+      - if current_user_player.tiles.any?
         .tile.tile-letter.player-action#shuffle-tiles title="Shuffle tiles in hand"
           = render "shuffle_svg"
 
-      - if @is_current_player
+      - if @permitted_to_take_turn
         .tile.tile-letter.player-action title="Restart Turn"
           = link_to request.path, "data-confirm" => "Are you sure you want to reset your turn?", style: "text-decoration: none;" do
             i.icon-repeat style="color: black"

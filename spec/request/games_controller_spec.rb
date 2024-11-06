@@ -39,6 +39,20 @@ RSpec.describe ScrabbleWithFriends::GamesController, type: :request do
     )
   end
 
+  def assert_action_denied_because_user_not_in_game
+    @game.players.destroy_all
+
+    player_2 = create_player
+
+    create_turn(player: player_2)
+
+    expect {
+      post scrabble_with_friends.take_turn_game_path(@game)
+      expect(response.status).to eq(302)
+      expect(flash.alert).to match(/not a part of this game/)
+    }.not_to change { @game.reload.updated_at }
+  end
+
   before do
     sign_in
   end
@@ -218,6 +232,23 @@ RSpec.describe ScrabbleWithFriends::GamesController, type: :request do
         }
       }
     end
+
+    it "does not perform action when user not in game" do
+      assert_action_denied_because_user_not_in_game
+    end
+
+    it "allows only the game current player to take turn when game started" do
+      player_1 = @game.players.first
+      player_2 = create_player
+
+      create_turn(player: player_1)
+
+      expect {
+        post scrabble_with_friends.take_turn_game_path(@game)
+        expect(response.status).to eq(302)
+        expect(flash.alert).to match(/not your turn/)
+      }.not_to change { @game.reload.updated_at }
+    end
   end
 
   context "undo_turn" do
@@ -239,17 +270,17 @@ RSpec.describe ScrabbleWithFriends::GamesController, type: :request do
 
     it "sends email if username is an email address" do
       player_1 = @game.players.first
-      player_1.update_columns(username: "foo@bar.com")
 
-      player_2 = create_player
+      player_2 = create_player(username: "foo@bar.com")
 
-      create_turn
+      create_turn(player: player_2)
 
       expect(@game.turns.size).to eq(1)
 
-      expect(ScrabbleWithFriends::ApplicationMailer).to receive(:its_your_turn).with(game_url: anything, email: player_1.username).and_call_original
+      expect(ScrabbleWithFriends::ApplicationMailer).to receive(:its_your_turn).with(game_url: anything, email: player_2.username).and_call_original
 
       post scrabble_with_friends.undo_turn_game_path(@game)
+      expect(response.status).to eq(302)
     end
 
     it "removes the score from the player" do
@@ -279,6 +310,10 @@ RSpec.describe ScrabbleWithFriends::GamesController, type: :request do
       player.reload
       expect(player.tiles.sort).to eq(orig_player_tiles.sort)
       expect(player.tiles.size).to eq(7)
+    end
+
+    it "does not perform action when user not in game" do
+      assert_action_denied_because_user_not_in_game
     end
   end
 
@@ -329,6 +364,10 @@ RSpec.describe ScrabbleWithFriends::GamesController, type: :request do
           }
         ],
       })
+    end
+
+    it "does not perform action when user not in game" do
+      assert_action_denied_because_user_not_in_game
     end
   end
 
@@ -387,6 +426,10 @@ RSpec.describe ScrabbleWithFriends::GamesController, type: :request do
       expect(response.status).to eq(302)
       expect(response).to redirect_to(scrabble_with_friends.game_path(@game))
     end
+
+    it "does not perform action when user not in game" do
+      assert_action_denied_because_user_not_in_game
+    end
   end
 
   context "add_player" do
@@ -437,6 +480,10 @@ RSpec.describe ScrabbleWithFriends::GamesController, type: :request do
       expect(response).to redirect_to(scrabble_with_friends.game_path(@game))
       expect(@game.players.reload.size).to eq(1)
     end
+
+    it "does not perform action when user not in game" do
+      assert_action_denied_because_user_not_in_game
+    end
   end
 
   context "restart" do
@@ -452,6 +499,10 @@ RSpec.describe ScrabbleWithFriends::GamesController, type: :request do
       expect(response).to redirect_to(scrabble_with_friends.game_path(@game))
       expect(@game.turns.reload.size).to eq(0)
     end
+
+    it "does not perform action when user not in game" do
+      assert_action_denied_because_user_not_in_game
+    end
   end
 
   context "destroy" do
@@ -463,6 +514,10 @@ RSpec.describe ScrabbleWithFriends::GamesController, type: :request do
       delete scrabble_with_friends.game_path(@game)
       expect(response).to redirect_to(scrabble_with_friends.games_path)
       expect(ScrabbleWithFriends::Game.find_by(id: @game.id)).to eq(nil)
+    end
+
+    it "does not perform action when user not in game" do
+      assert_action_denied_because_user_not_in_game
     end
   end
 end
