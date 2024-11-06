@@ -28,6 +28,16 @@ module ScrabbleWithFriends
 
     private
 
+    def authenticate_user!
+      if !signed_in?
+        if request.method == "GET" && params[:id].present?
+          session[:scrabble_with_friends_return_to] = request.path
+        end
+
+        redirect_to sign_in_path
+      end
+    end
+
     def signed_in?
       Current.username.present?
     end

@@ -2,22 +2,28 @@ require_dependency "scrabble_with_friends/application_controller"
 
 module ScrabbleWithFriends
   class GamesController < ApplicationController
-    before_action do
-      if !signed_in?
-        if request.method == "GET" && params[:id].present?
-          session[:scrabble_with_friends_return_to] = request.path
-        end
+    before_action :authenticate_user!
+    before_action :_fetch_game, except: [:index, :new, :create]
+    before_action :_ensure_current_user_in_game!, except: [:index, :new, :create, :show, :add_player]
+    before_action :_ensure_its_current_users_turn!, only: [:take_turn]
 
-        redirect_to sign_in_path
-      end
-
-      if @game && @game.started? && @game.players.map(&:username).exclude?(current_username)
-        redirect_to(action: :index)
-      end
-    end
+    helper_method :current_user_player
+    helper_method :game_current_player
 
     def index
-      _fetch_your_games
+      @your_games = []
+
+      game_ids = session[YOUR_GAMES_SESSION_KEY]
+
+      return if game_ids.blank?
+
+      @your_games = ScrabbleWithFriends::Game
+        .for_user(current_username)
+        .where(public_id: game_ids)
+        .includes(:players, :turns)
+        .order(updated_at: :desc)
+
+      session[YOUR_GAMES_SESSION_KEY] = @your_games.map(&:public_id)
     end
 
     def new
@@ -54,17 +60,9 @@ module ScrabbleWithFriends
     end
 
     def show
-      begin
-        @game = ScrabbleWithFriends::Game.includes(:players, :turns).find_by!(public_id: params[:id])
-      rescue ActiveRecord::RecordNotFound
-        flash[:alert] = "Game not found or expired."
-        redirect_to(action: :index)
-        return
-      end
-
       _add_to_your_games
 
-      @is_current_player = @game.active_players.map(&:username).include?(current_username) && !@game.game_over? && (!@game.started? || (_game_current_player.username == current_username))
+      @permitted_to_take_turn = current_user_player && (!@game.started? || game_current_player.id == current_user_player.id)
 
       respond_to do |f|
         f.html
@@ -80,8 +78,6 @@ module ScrabbleWithFriends
     end
 
     def restart
-      @game = ScrabbleWithFriends::Game.includes(:players, :turns).find_by!(public_id: params[:id])
-
       @game.restart!
 
       _broadcast_changes
@@ -90,9 +86,7 @@ module ScrabbleWithFriends
     end
 
     def forfeit
-      @game = ScrabbleWithFriends::Game.includes(:players).find_by!(public_id: params[:id])
-
-      _user_current_player.update!(forfeitted: true, tiles: [])
+      current_user_player.update!(forfeitted: true, tiles: [])
 
       if @game.game_over?
         email_addresses = @game.players.select(&:has_email?).map(&:username) - [current_username]
@@ -104,10 +98,10 @@ module ScrabbleWithFriends
             winning_player_username: @game.players.max_by(&:score).username,
           ).deliver_now
         end
-      elsif @game.current_player&.has_email? && @game.current_player.username != current_username
+      elsif game_current_player && game_current_player.has_email? && game_current_player.id != current_user_player.id
         ScrabbleWithFriends::ApplicationMailer.its_your_turn(
           game_url: game_url(@game),
-          email: @game.current_player.username,
+          email: game_current_player.username,
         ).deliver_now
       end
 
@@ -117,14 +111,13 @@ module ScrabbleWithFriends
     end
 
     def undo_turn
-      @game = ScrabbleWithFriends::Game.find_by!(public_id: params[:id])
-
       last_turn = @game.last_turn
 
       last_player = last_turn.player
 
       if last_player.forfeitted?
-        raise "Cannot undo"
+        redirect_to(action: :show, alert: "Cannot undo, last player forfeitted the game")
+        return
       end
 
       tiles = last_player.tiles.dup
@@ -159,8 +152,6 @@ module ScrabbleWithFriends
     end
 
     def validate_turn
-      @game = ScrabbleWithFriends::Game.includes(:players, :turns).find_by!(public_id: params[:id])
-
       _validate_turn_only
 
       if @errors.any?
@@ -171,23 +162,17 @@ module ScrabbleWithFriends
     end
 
     def take_turn
-      @game = ScrabbleWithFriends::Game.includes(:players, :turns).find_by!(public_id: params[:id])
-
       _validate_turn_only
 
       if @errors.any?
         flash[:alert] = "Turn failed"
         redirect_to(action: :show)
       else
-        ActiveRecord::Base.transaction do
-          @game.save!
-
-          @game.create_turn!(
-            player: _user_current_player,
-            tiles_played: _tiles_played,
-            score: @words.sum{|h| h.fetch(:points) },
-          )
-        end
+        @game.create_turn!(
+          player: current_user_player,
+          tiles_played: _tiles_played,
+          score: @words.sum{|h| h.fetch(:points) },
+        )
 
         if @game.game_over?
           email_addresses = @game.players.select(&:has_email?).map(&:username) - [current_username]
@@ -199,10 +184,10 @@ module ScrabbleWithFriends
               winning_player_username: @game.players.max_by(&:score).username,
             ).deliver_now
           end
-        elsif @game.current_player&.has_email? && @game.current_player.username != current_username
+        elsif game_current_player && game_current_player.has_email? && game_current_player.id != current_user_player.id
           ScrabbleWithFriends::ApplicationMailer.its_your_turn(
             game_url: game_url(@game),
-            email: @game.current_player.username,
+            email: game_current_player.username,
           ).deliver_now
         end
 
@@ -213,8 +198,6 @@ module ScrabbleWithFriends
     end
 
     def add_player
-      @game = ScrabbleWithFriends::Game.includes(:turns).find_by!(public_id: params[:id])
-
       if @game.started?
         flash.alert = "Cannot add player when game is started"
         redirect_to(action: :show)
@@ -232,8 +215,6 @@ module ScrabbleWithFriends
     end
 
     def remove_player
-      @game = ScrabbleWithFriends::Game.includes(:players).find_by!(public_id: params[:id])
-
       if @game.players.size == 1
         flash.alert = "Cannot remove player. Game must have at least one player."
         redirect_to(action: :show)
@@ -248,8 +229,6 @@ module ScrabbleWithFriends
     end
 
     def destroy
-      @game = ScrabbleWithFriends::Game.find_by!(public_id: params[:id])
-
       @game.destroy!
 
       redirect_to(action: :index)
@@ -257,20 +236,12 @@ module ScrabbleWithFriends
 
     private
 
-    def _game_current_player
-      return @game_current_player if defined?(@game_current_player)
-
+    def game_current_player
       @game_current_player ||= @game.current_player
-
-      if @game.started? && current_username != @game_current_player.username && request.method != "GET"
-        raise "Not this users turn, cannot perform this action"
-      end
-
-      @game_current_player
     end
 
-    def _user_current_player
-      @game.players.detect{|x| x.username == current_username }
+    def current_user_player
+      @current_user_player ||= @game.players.detect{|x| x.username == current_username }
     end
 
     def _broadcast_changes
@@ -284,10 +255,11 @@ module ScrabbleWithFriends
     end
 
     def _add_to_your_games
+      return if current_user_player.nil?
+
       game_ids = session[YOUR_GAMES_SESSION_KEY] || []
 
       return if game_ids.include?(@game.public_id)
-      return if @game.players.none?{|x| x.username == current_username }
 
       game_ids << @game.public_id
 
@@ -429,7 +401,7 @@ module ScrabbleWithFriends
 
       valid = true
 
-      players_tiles = _user_current_player.tiles.dup
+      players_tiles = current_user_player.tiles.dup
 
       letters_played.each_with_index.each do |letter, i|
         if players_tiles.include?(letter)
@@ -601,20 +573,27 @@ module ScrabbleWithFriends
       word_points
     end
 
-    def _fetch_your_games
-      @your_games = []
+    def _fetch_game
+      begin
+        @game = ScrabbleWithFriends::Game.includes(:players, :turns).find_by!(public_id: params.fetch(:id))
+      rescue ActiveRecord::RecordNotFound
+        flash[:alert] = "Game not found or expired."
+        redirect_to(action: :index)
+      end
+    end
 
-      game_ids = session[YOUR_GAMES_SESSION_KEY]
+    def _ensure_current_user_in_game!
+      if current_user_player.nil?
+        flash[:alert] = "Cannot perform this action. You are not a part of this game."
+        redirect_to(action: :show)
+      end
+    end
 
-      return if game_ids.blank?
-
-      @your_games = ScrabbleWithFriends::Game
-        .for_user(current_username)
-        .where(public_id: game_ids)
-        .includes(:players, :turns)
-        .order(updated_at: :desc)
-
-      session[YOUR_GAMES_SESSION_KEY] = @your_games.map(&:public_id)
+    def _ensure_its_current_users_turn!
+      if game_current_player.present? && game_current_player.id != current_user_player.id
+        flash[:alert] = "Cannot perform this action. It is not your turn."
+        redirect_to(action: :show)
+      end
     end
 
     YOUR_GAMES_SESSION_KEY = :scrabble_with_friends_your_game_ids

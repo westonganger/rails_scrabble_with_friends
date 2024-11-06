@@ -11,18 +11,18 @@ div.text-center
       - @game.players.each do |player|
         tr
           td
-            - if @game.game_over? && @game.players.max_by(&:score)&.username == player.username
+            - if @game.game_over? && @game.players.max_by(&:score)&.id == player.id
               i.icon-trophy.space-right2 style="color: green; font-size: 16px;"
 
             = player.username
 
-            - if player.username == current_username
+            - if current_user_player && player.id == current_user_player.id
               = " (You)"
 
             - if player.forfeitted?
               = " (Forfeitted)"
 
-            - if @game.current_player&.username == player.username
+            - if game_current_player&.id == player.id
               = " (Current Player)"
 
             - if !@game.started? && num_players >= 2

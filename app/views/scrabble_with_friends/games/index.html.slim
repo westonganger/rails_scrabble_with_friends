@@ -17,6 +17,7 @@
         tbody
           - @your_games.each do |game|
             - vs_players = game.players.map(&:username) - [current_username]
+            - game_current_player = game.current_player
 
             tr data-url="#{game_path(game)}"
               td
@@ -35,18 +36,18 @@
               td
                 - if game.game_over?
                   | Game over
-                - if !game.current_player
+                - if game_current_player.nil?
                   | Waiting to start
                 - else
-                  - if game.current_player.username == current_username
+                  - if game_current_player.username == current_username
                     | You
                   - else
-                    = game.current_player.username
+                    = game_current_player.username
 
               td = game.updated_at.to_date
 
               td
-                - if game.current_player.nil? || vs_players.empty?
+                - if game_current_player.nil? || vs_players.empty?
                   = link_to game_path(game), method: :delete, title: "Delete game", "data-confirm" => "Are you sure you want to delete this game?", class: "btn btn-danger btn-xs space-left" do
                     i.icon-trash
 
