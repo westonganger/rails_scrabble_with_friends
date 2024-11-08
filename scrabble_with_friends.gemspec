@@ -23,10 +23,12 @@ Gem::Specification.new do |spec|
   spec.add_dependency "slim"
   spec.add_dependency "hashids"
   spec.add_dependency "sprockets-rails"
+  spec.add_dependency "web-push"
 
   spec.add_development_dependency "sqlite3"
   spec.add_development_dependency "rspec-rails"
   spec.add_development_dependency "database_cleaner"
   spec.add_development_dependency "pry-rails"
   spec.add_development_dependency "rails-controller-testing"
+  spec.add_development_dependency "webmock"
 end

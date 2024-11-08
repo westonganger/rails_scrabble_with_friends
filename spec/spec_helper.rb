@@ -1,6 +1,15 @@
 require 'rails_helper'
 require 'pry-rails'
 require 'database_cleaner'
+require 'webmock/rspec'
+
+TEST_VAPID_PUBLIC_KEY = "BBj2BQJdncdLjKbnYqWue5KffyeGlidA1Bt1YBR8ecEn-IIwVVt1ybD61YWtEgNykbEAuJhMJENVLj1GDDu71V8".freeze
+TEST_VAPID_PRIVATE_KEY = "sqqwmD4JEb9pjB29NHqwBOnj2bmQ_wyY-DmO9lO2XTk=".freeze
+
+ScrabbleWithFriends.config do |config|
+  config.web_push_vapid_public_key = TEST_VAPID_PUBLIC_KEY
+  config.web_push_vapid_private_key = TEST_VAPID_PRIVATE_KEY
+end
 
 RSpec.configure do |config|
 

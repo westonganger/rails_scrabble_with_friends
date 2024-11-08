@@ -10,6 +10,8 @@ html
 
     meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, minimum-scale=1, maximum-scale=1"
 
+    = tag.link rel: "manifest", href: pwa_manifest_path(format: :json)
+
     = favicon_link_tag "scrabble_with_friends/favicon.ico"
 
     = render "layouts/scrabble_with_friends/assets"
