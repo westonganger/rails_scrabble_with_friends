@@ -11,7 +11,7 @@
   = render "players_list"
 
 - if current_user_player && @game.started?
-  .space-above2.text-center && _game_current_player.id == current_user_player.id
+  .space-above2.text-center
     - if @game.last_turn && !@game.last_turn.player.forfeitted?
       = link_to "Undo Last Turn", undo_turn_game_path(@game), class: "btn btn-transparent btn-xs", "data-confirm" => "Last turn was taken by #{@game.last_turn.player.username}\n\nAre you sure you want to undo the last turn?", "data-method" => :post
 
