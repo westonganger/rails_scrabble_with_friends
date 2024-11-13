@@ -1,0 +1,111 @@
+<% if ScrabbleWithFriends.config.web_push_enabled? && current_user_player %>
+  <script>
+    document.addEventListener("DOMContentLoaded", function(){
+      if (!window.PushManager) {
+        // also occurs when in firefox private window
+        console.warn('Push messaging is not supported in your browser: window.PushManager');
+        return false;
+      } else if (!window.Notification) {
+        console.warn('Push messaging is not supported in your browser: windowNotification');
+        return false;
+      } else if (!ServiceWorkerRegistration.prototype.showNotification) {
+        console.warn('Notifications are not supported in your browser: !ServiceWorkerRegistration.prototype.showNotification');
+        return false;
+      } else {
+        var registerServiceWorker = async () => {
+          if (navigator.serviceWorker) {
+            try {
+              await navigator.serviceWorker.register('/service-worker.js');
+            } catch (error) {
+              console.error('Error registering service worker: ', error);
+            }
+          }
+        };
+
+        var webPushSubscribe = async () => {
+          var registration = await navigator.serviceWorker.ready;
+
+          var pushManager = registration.pushManager;
+
+          var subscription = await pushManager.getSubscription();
+
+          if (subscription) {
+            // device already subscribed
+            // we still need to call save to ensure we have a DB entry for this particular game
+            saveSubscriptionToBackend(subscription);
+          } else{
+            var vapidPublicKey = document.querySelector('meta[name="vapid-public-key"]').content;
+
+            subscription = await pushManager
+              .subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: vapidPublicKey,
+              })
+              .then(function(subscription){
+                $("#allow-web-push-notifications").hide();
+                saveSubscriptionToBackend(subscription);
+              });
+          }
+
+          return subscription;
+        };
+
+        var saveSubscriptionToBackend = function(subscription){
+          var csrf_token = document.querySelector('meta[name="csrf-token"]').content;
+
+          fetch("<%= create_web_push_subscription_game_path(@game) %>", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json",
+              "X-CSRF-Token": csrf_token,
+            },
+            body: JSON.stringify(
+              subscription.toJSON()
+            ),
+          }).then(function(response){
+            // successfully saved to server
+            return true;
+          }).catch(function(error){
+            console.error("Error sending subscription to the server:", error);
+            return false;
+          });
+        }
+
+        if (Notification.permission === "granted") {
+          registerServiceWorker();
+          webPushSubscribe();
+        } else {
+          // Notification.permission "default", User has not yet accepted notifications,
+          // Notification.permission "denied", User has denied notifications
+
+          $("#allow-web-push-notifications").show();
+
+          var askForNotificationsPermission = function(){
+            Notification.requestPermission().then(function(status){
+              if (status === "granted") {
+                registerServiceWorker();
+
+                webPushSubscribe();
+
+                $("#allow-web-push-notifications").hide();
+              }
+            });
+          };
+
+          if (Notification.permission !== "denied") {
+            // attempt to requests notitifications immediately (not supported in firefox or safari, will show console warning instead)
+            // not considered good practice generally but this works good for this apps use case
+            askForNotificationsPermission();
+          }
+
+          $("#allow-web-push-notifications").click(function(){
+            // its good practice to have button where users subscribe to notifications
+            // its also mandatory to have a user generated event in both firefox and safari
+            askForNotificationsPermission();
+          });
+        }
+      }
+    });
+  </script>
+<% end %>

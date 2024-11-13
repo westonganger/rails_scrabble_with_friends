@@ -1,16 +1,18 @@
-- @title ||= "Scrabble With Friends"
-- @description ||= "Simple web-based scrabble"
-
 doctype html
 html
   head
-    title = @title
+    title = ScrabbleWithFriends::APP_NAME
+    meta name="description" content=ScrabbleWithFriends::DESCRIPTION
 
     = csrf_meta_tags
 
     meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, minimum-scale=1, maximum-scale=1"
 
     = favicon_link_tag "scrabble_with_friends/favicon.ico"
+
+    - if ScrabbleWithFriends.config.web_push_enabled?
+      link rel="manifest" href=pwa_manifest_path(format: :json)
+      meta name="vapid-public-key" content=ScrabbleWithFriends.config.web_push_vapid_public_key
 
     = render "layouts/scrabble_with_friends/assets"
 
@@ -20,8 +22,8 @@ html
 
       .container-fluid
         .navbar-header
-          h1.hidden = @title
-          a.navbar-brand href=root_path = "#{@title}"
+          h1.hidden = ScrabbleWithFriends::APP_NAME
+          a.navbar-brand href=root_path = "#{ScrabbleWithFriends::APP_NAME}"
 
         .navbar-collapse.collapse#nav
           - if signed_in?
