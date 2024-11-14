@@ -70,27 +70,15 @@
           });
         }
 
-        var askPermissionAndSubscribe = function(){
-          Notification.requestPermission().then(function(status){
-            if (status === "granted") {
-              registerServiceWorker();
-
-              webPushSubscribe();
-
-              alert("Subscribed to Browser notifications.");
-              window.location.reload();
-            }
-          });
-        };
-
         $("#webpush-subscribe").click(function(){
           // its mandatory to have a user generated event in both firefox and safari
 
           var perform = function(){
             registerServiceWorker();
-            webPushSubscribe();
-            alert("Subscribed to Browser notifications for this game.");
-            window.location.reload();
+            webPushSubscribe().then(function(){
+              alert("Subscribed to Browser notifications for this game.");
+              window.location.reload();
+            });
           };
 
           if(Notification.permission === "granted"){

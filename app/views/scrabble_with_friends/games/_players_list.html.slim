@@ -59,6 +59,11 @@ div.text-center
               button.btn.btn-xs.btn-transparent.center-block.space-above popovertarget="notification-options" Notification Options
 
               div#notification-options popover=true style="padding: 20px;"
+                css:
+                  ::backdrop {
+                    background: rgba(0, 0, 0, 0.5);
+                  }
+
                 h4 Notification Options
                 .text-center
                   - if current_user_player.notification_type.present?
