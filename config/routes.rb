@@ -6,16 +6,15 @@ ScrabbleWithFriends::Engine.routes.draw do
   resources :games, controller: :games, except: [:edit, :update] do
     member do
       post :restart
-
       post :forfeit
       post :validate_turn
       post :take_turn
       post :undo_turn
-
       post :add_player
       post :remove_player
-
-      post :send_web_push_notification
+      post :email_subscribe
+      post :notifications_unsubscribe
+      post :trigger_turn_notification
       post :create_web_push_subscription, constraints: {format: :json}
     end
   end

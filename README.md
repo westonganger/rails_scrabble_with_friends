@@ -103,7 +103,7 @@ require 'web-push'
 
 generated_vapid_key = WebPush.generate_key
 
-public_key = generated_vapid_key.public_key.delete("=")
+public_key = generated_vapid_key.public_key
 # => "BC1mp...HQ"
 
 private_key = generated_vapid_key.private_key

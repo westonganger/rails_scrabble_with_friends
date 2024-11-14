@@ -1,6 +1,6 @@
 .text-center style="max-width: 640px; margin: 0 auto;"
   h2 Welcome to #{ScrabbleWithFriends::APP_NAME}
-  p Enter your email or an anonymous username to get started playing scrabble with your friends online.
+  p Enter a username to get started playing scrabble with your friends online.
 
   = form_tag nil, method: :post, class: 'form-inline', autofill: "off" do
     .form-group.hidden.honeypot
@@ -11,8 +11,7 @@
       label Username
       div
         input.form-control type="text" name="username" autofocus=true
-      .hint.small.text-muted.space-above If you want to receive email notifications use your email address.
-      .hint.small.text-muted.space-above Otherwise enter an anonymous username, Example: jazz-jackrabbit-829
+      .hint.small.text-muted.space-above Example: jazz-jackrabbit-829
 
     .text-center.space-above2
       button.btn.btn-sm.btn-success type="submit" Sign In
