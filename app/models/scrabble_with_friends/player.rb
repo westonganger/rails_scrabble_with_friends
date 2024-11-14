@@ -7,6 +7,12 @@ module ScrabbleWithFriends
 
     validates :username, presence: true, uniqueness: {scope: :game_id, case_sensitive: false}
 
+    validate do
+      if notify_with && notify_with != "webpush" && !notify_with.match?(URI::MailTo::EMAIL_REGEXP)
+        errors.add(:notify_with, :invalid)
+      end
+    end
+
     before_create do
       self.tiles = game.tiles_in_bag.sample(MAX_TILES)
     end
@@ -15,8 +21,10 @@ module ScrabbleWithFriends
       !forfeitted? && !tiles.empty?
     end
 
-    def has_email?
-      username.match?(/.*@.*\..*/)
+    def notification_type
+      if notify_with
+        notify_with == "webpush" ? "webpush" : "email"
+      end
     end
   end
 end

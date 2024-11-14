@@ -25,33 +25,75 @@ div.text-center
             - if game_current_player && game_current_player.id == player.id
               = " (Current Player)"
 
-              - if ScrabbleWithFriends.config.web_push_enabled? && current_user_player
-                - if player.id == current_user_player.id
-                  button#allow-web-push-notifications.btn.btn-xs.btn-transparent.center-block.space-above style="display: none;" type="button" Enable Notifications
-                - elsif player.id != current_user_player.id && player.id == game_current_player.id && (player.has_email? || !player.web_push_subscriptions.empty?)
-                    button#send-turn-reminder.btn.btn-xs.btn-transparent.space-above.center-block type="button" Still Waiting? Send turn reminder
+              - if current_user_player && player.id != current_user_player.id && player.id == game_current_player.id
+                  button#send-turn-notification.btn.btn-xs.btn-transparent.space-above.center-block type="button" Still Waiting? Send turn reminder
 
+                  javascript:
+                    $(function(){
+                      $("button#send-turn-notification").click(function(){
+                        var btn = $(this);
+
+                        if(!confirm("You can send a notification to the current player to take their turn.\n\nDo you want to trigger this notification?")){
+                          return false;
+                        }
+
+                        if(#{raw player.notification_type.nil?}){
+                          alert("Cannot send message. Player does not have any notifications enabled.");
+                          return false;
+                        }
+
+                        $.ajax({
+                          url: "#{trigger_turn_notification_game_path(@game)}",
+                          method: "POST",
+                        }).done(function(){
+                          btn.hide();
+
+                          setTimeout(function(){
+                            window.alert("Notification sent");
+                          }, 500);
+                        });
+                      });
+                    });
+
+            - if current_user_player && player.id == current_user_player.id
+              button.btn.btn-xs.btn-transparent.center-block.space-above popovertarget="notification-options" Notification Options
+
+              div#notification-options popover=true style="padding: 20px;"
+                h4 Notification Options
+                .text-center
+                  - if current_user_player.notification_type.present?
+                    = link_to "Unsubscribe from #{current_user_player.notification_type == "webpush" ? "Browser" : "Email"} notifications", notifications_unsubscribe_game_path(@game), class: "btn btn-xs btn-transparent", "data-confirm" => "Are you sure you want to unsubscribe from notifications for this game?", "data-method" => "post"
+                    button.btn.btn-xs.btn-transparent.disabled.space-left type="button" title="Can only have one notification method enabled at a time" = "#{current_user_player.notification_type != "webpush" ? "Browser Notifications" : "Email"}"
+                  - else
+                    button#email-subscribe.btn.btn-xs.btn-transparent type="button" Email
+                    button#webpush-subscribe.btn.btn-xs.btn-transparent.space-left type="button" Browser Notifications
                     javascript:
                       $(function(){
-                        $("button#send-turn-reminder").click(function(){
-                          var btn = $(this);
+                        $("button#email-subscribe").click(function(){
+                          var email = prompt("What is your email address?");
 
-                          if(!confirm("You can send a notification to the current player to take their turn.\n\nDo you want to trigger this notification?")){
+                          if(!email){
+                            alert("No email entered.");
+                            return false;
+                          }else if(!email.includes("@") && !email.includes(".")){
+                            alert("Invalid email entered.")
                             return false;
                           }
 
                           $.ajax({
-                            url: "#{send_web_push_notification_game_path(@game)}",
+                            url: "#{email_subscribe_game_path(@game)}",
                             method: "POST",
+                            data: {
+                              email: email,
+                            },
                           }).done(function(){
-                            btn.hide();
-
-                            setTimeout(function(){
-                              window.alert("Notification sent");
-                            }, 500);
+                            alert("Subscribed to email notifications.");
+                            window.location.reload();
                           });
                         });
                       });
+
+                  button.btn.btn-xs.btn-transparent.space-left type="button" popovertargetaction="hide" popovertarget="notification-options" Cancel
 
             - if !@game.started? && num_players >= 2
               = link_to remove_player_game_path(@game, player_id: player.id), class: "btn btn-xs btn-danger space-left2", "data-confirm" => "Are you sure you want to remove this player from the game?", "data-method" => :post do

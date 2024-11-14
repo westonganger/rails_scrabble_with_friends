@@ -6,7 +6,6 @@ module ScrabbleWithFriends
     before_action :_fetch_game, except: [:index, :new, :create]
     before_action :_ensure_current_user_in_game!, except: [:index, :new, :create, :show, :add_player]
     before_action :_ensure_its_current_users_turn!, only: [:take_turn]
-    before_action :render_404, only: [:send_web_push_notification, :create_web_push_subscription], if: -> { !ScrabbleWithFriends.config.web_push_enabled? }
 
     helper_method :current_user_player
     helper_method :game_current_player
@@ -41,7 +40,7 @@ module ScrabbleWithFriends
 
       game_saved = false
 
-      ActiveRecord::Base.transaction do
+      ApplicationRecord.transaction do
         game_saved = @game.save
 
         if game_saved
@@ -118,7 +117,7 @@ module ScrabbleWithFriends
         tiles << letter
       end
 
-      ActiveRecord::Base.transaction do
+      ApplicationRecord.transaction do
         last_player.update!(
           score: (last_player.score - last_turn.score),
           tiles: tiles,
@@ -210,7 +209,7 @@ module ScrabbleWithFriends
       redirect_to(action: :index)
     end
 
-    def send_web_push_notification
+    def trigger_turn_notification
       if !game_current_player
         flash[:alert] = "Action not permitted, its not anyones turn"
         redirect_to(action: :show)
@@ -221,12 +220,7 @@ module ScrabbleWithFriends
 
       subscriptions = game_current_player.web_push_subscriptions
 
-      _send_web_push_notifications!(
-        title: notification_message,
-        body: notification_message,
-        url: game_url(@game),
-        subscriptions: game_current_player.web_push_subscriptions,
-      )
+      _send_its_your_turn_notifications!(game_current_player, notification_message: notification_message)
 
       head :ok
     end
@@ -243,15 +237,34 @@ module ScrabbleWithFriends
         .where(game_id: @game.id)
         .find_by(push_subscription_attrs)
 
-      if subscription
-        subscription.touch
-      else
-        push_subscription_attrs[:user_agent] = request.user_agent, # nice to have field, serves to actual purpose other than debugging support
+      ApplicationRecord.transaction do
+        if subscription
+          subscription.touch
+        else
+          push_subscription_attrs[:user_agent] = request.user_agent, # nice to have field, serves to actual purpose other than debugging support
 
-        current_user_player.web_push_subscriptions.create!(push_subscription_attrs)
+          current_user_player.web_push_subscriptions.create!(push_subscription_attrs)
+        end
+
+        current_user_player.update!(notify_with: "webpush")
       end
 
       head :ok
+    end
+
+    def email_subscribe
+      current_user_player.update!(notify_with: params.require(:email))
+      head :ok
+    end
+
+    def notifications_unsubscribe
+      ApplicationRecord.transaction do
+        current_user_player.update!(notify_with: nil)
+        current_user_player.web_push_subscriptions.each(&:destroy!)
+      end
+
+      flash.notice = "Unsubscribed from notifications"
+      redirect_to(action: :show)
     end
 
     private
@@ -617,8 +630,6 @@ module ScrabbleWithFriends
     end
 
     def _send_web_push_notifications!(title:, body:, url:, subscriptions:)
-      return false if !ScrabbleWithFriends.config.web_push_enabled?
-
       subscriptions.each do |s|
         WebPush.payload_send(
           message: JSON.generate({
@@ -660,7 +671,7 @@ module ScrabbleWithFriends
 
       notification_message = "#{winning_player_username} has won your #{ScrabbleWithFriends::APP_NAME} game"
 
-      email_addresses = @game.players.select(&:has_email?).map(&:username) - [current_username]
+      email_addresses = @game.players.select{|player| player.notification_type == "email" && current_user_player.id != player.id}.map(&:notify_with)
 
       if email_addresses.any?
         ScrabbleWithFriends::ApplicationMailer.game_email(
@@ -668,33 +679,38 @@ module ScrabbleWithFriends
           game_url: game_url(@game),
           email_addresses: email_addresses,
         ).deliver_now
+      end
 
+      web_push_subscriptions = @game.players.select{|player| player.notification_type == "webpush" && current_user_player.id != player.id}.flat_map(&:subscriptions)
+
+      if web_push_subscriptions.any?
         _send_web_push_notifications!(
           title: notification_message,
           body: notification_message,
           url: game_url(@game),
-          subscriptions: @game.web_push_subscriptions,
+          subscriptions: web_push_subscriptions,
         )
       end
     end
 
-    def _send_its_your_turn_notifications!(player)
-      notification_message = "Its your turn to play on your #{ScrabbleWithFriends::APP_NAME} game"
+    def _send_its_your_turn_notifications!(player, notification_message: nil)
+      notification_message ||= "Its your turn to play on your #{ScrabbleWithFriends::APP_NAME} game"
 
-      if player.has_email?
+      case player.notification_type
+      when "email"
         ScrabbleWithFriends::ApplicationMailer.game_email(
           subject: notification_message,
           game_url: game_url(@game),
-          email_addresses: [player.username],
+          email_addresses: [player.notify_with],
         ).deliver_now
-      end
-
-      _send_web_push_notifications!(
-        title: notification_message,
-        body: notification_message,
-        url: game_url(@game),
-        subscriptions: player.web_push_subscriptions,
-      )
+      when "webpush"
+        _send_web_push_notifications!(
+          title: notification_message,
+          body: notification_message,
+          url: game_url(@game),
+          subscriptions: player.web_push_subscriptions,
+        )
+        end
     end
 
     YOUR_GAMES_SESSION_KEY = :scrabble_with_friends_your_game_ids

@@ -21,12 +21,11 @@ RSpec.describe ScrabbleWithFriends::GamesController, type: :request do
     @game
   end
 
-  def create_player(username: nil)
+  def create_player(username: nil, notify_with: nil)
     player = @game.players.create!(
       username: username || SecureRandom.hex(6),
+      notify_with: notify_with,
     )
-
-    create_subscription(player: player)
 
     player
   end
@@ -221,12 +220,12 @@ RSpec.describe ScrabbleWithFriends::GamesController, type: :request do
       player_1 = @game.players.first
       player_1.update_columns(tiles: ["F","O","O","S"])
 
-      player_2 = create_player(username: "foo@bar.com")
+      player_2 = create_player(notify_with: "foo@bar.com")
 
       expect(@game.turns.size).to eq(0)
 
-      expect(ScrabbleWithFriends::ApplicationMailer).to receive(:game_email).with(subject: /Its your turn/, game_url: anything, email_addresses: [player_2.username]).and_call_original
-      expect(WebPush).to receive(:payload_send).exactly(1).times.and_call_original
+      expect(ScrabbleWithFriends::ApplicationMailer).to receive(:game_email).with(subject: /Its your turn/, game_url: anything, email_addresses: [player_2.notify_with]).and_call_original
+      expect(WebPush).not_to receive(:payload_send).and_call_original
 
       post scrabble_with_friends.take_turn_game_path(@game), params: {
         game: {
@@ -243,17 +242,17 @@ RSpec.describe ScrabbleWithFriends::GamesController, type: :request do
       player_1 = @game.players.first
       player_1.update_columns(tiles: ["F","O","O"])
 
-      player_2 = create_player(username: "foo@bar.com")
+      player_2 = create_player(notify_with: "foo@bar.com")
 
       allow_any_instance_of(ScrabbleWithFriends::Game).to receive(:game_over?).and_return(true)
 
       expect(ScrabbleWithFriends::ApplicationMailer).to receive(:game_email).with(
-        subject: "#{player_1.username} has won your Scrabble with Friends game",
+        subject: "#{player_1.username} has won your #{ScrabbleWithFriends::APP_NAME} game",
         game_url: anything,
-        email_addresses: [player_2.username],
+        email_addresses: [player_2.notify_with],
       ).and_call_original
 
-      expect(WebPush).to receive(:payload_send).exactly(2).times.and_call_original
+      expect(WebPush).not_to receive(:payload_send).and_call_original
 
       post scrabble_with_friends.take_turn_game_path(@game), params: {
         game: {
@@ -293,27 +292,44 @@ RSpec.describe ScrabbleWithFriends::GamesController, type: :request do
       create_turn
       expect(@game.turns.size).to eq(1)
 
-      expect(ScrabbleWithFriends::ApplicationMailer).not_to receive(:game_email).and_call_original # because player has no email address
-
-      expect(WebPush).to receive(:payload_send).exactly(1).times.and_call_original
+      expect(ScrabbleWithFriends::ApplicationMailer).not_to receive(:game_email).and_call_original
+      expect(WebPush).not_to receive(:payload_send).and_call_original
 
       post scrabble_with_friends.undo_turn_game_path(@game)
       expect(response).to redirect_to(scrabble_with_friends.game_path(@game))
       expect(@game.turns.reload.size).to eq(0)
     end
 
-    it "sends email if username is an email address" do
+    it "sends email" do
       player_1 = @game.players.first
 
-      player_2 = create_player(username: "foo@bar.com")
+      player_2 = create_player(notify_with: "foo@bar.com")
 
       create_turn(player: player_2)
 
       expect(@game.turns.size).to eq(1)
 
-      expect(ScrabbleWithFriends::ApplicationMailer).to receive(:game_email).with(subject: /Its your turn/, game_url: anything, email_addresses: [player_2.username]).and_call_original
+      expect(ScrabbleWithFriends::ApplicationMailer).to receive(:game_email).with(subject: /Its your turn/, game_url: anything, email_addresses: [player_2.notify_with]).and_call_original
 
-      expect(WebPush).to receive(:payload_send).exactly(1).times.and_call_original
+      expect(WebPush).not_to receive(:payload_send).and_call_original
+
+      post scrabble_with_friends.undo_turn_game_path(@game)
+      expect(response).to redirect_to(scrabble_with_friends.game_path(@game))
+    end
+
+    it "sends webpush" do
+      player_1 = @game.players.first
+
+      player_2 = create_player(notify_with: "webpush")
+      create_subscription(player: player_2)
+
+      create_turn(player: player_2)
+
+      expect(@game.turns.size).to eq(1)
+
+      expect(ScrabbleWithFriends::ApplicationMailer).not_to receive(:game_email).and_call_original
+
+      expect(WebPush).to receive(:payload_send).and_call_original
 
       post scrabble_with_friends.undo_turn_game_path(@game)
       expect(response).to redirect_to(scrabble_with_friends.game_path(@game))
@@ -426,16 +442,16 @@ RSpec.describe ScrabbleWithFriends::GamesController, type: :request do
     it "sends email when username is email address" do
       player_2 = create_player
 
-      player_3 = create_player(username: "player3@foo.com")
+      player_3 = create_player(notify_with: "player3@foo.com")
 
       create_turn
 
       logout
       sign_in(player_2.username)
 
-      expect(ScrabbleWithFriends::ApplicationMailer).to receive(:game_email).with(subject: /Its your turn/, game_url: anything, email_addresses: [player_3.username]).and_call_original
+      expect(ScrabbleWithFriends::ApplicationMailer).to receive(:game_email).with(subject: /Its your turn/, game_url: anything, email_addresses: [player_3.notify_with]).and_call_original
 
-      expect(WebPush).to receive(:payload_send).exactly(1).times.and_call_original
+      expect(WebPush).not_to receive(:payload_send).and_call_original
 
       post scrabble_with_friends.forfeit_game_path(@game)
       expect(response).to redirect_to(scrabble_with_friends.game_path(@game))
@@ -443,9 +459,9 @@ RSpec.describe ScrabbleWithFriends::GamesController, type: :request do
 
     it "sends email when game over" do
       player_1 = @game.players.first
-      player_1.update_columns(username: "foo@bar.com")
+      player_1.update_columns(notify_with: "foo@bar.com")
 
-      player_2 = create_player(username: "player2@foo.com")
+      player_2 = create_player(notify_with: "player2@foo.com")
 
       create_turn(player: player_1)
 
@@ -453,12 +469,12 @@ RSpec.describe ScrabbleWithFriends::GamesController, type: :request do
       sign_in(player_2.username)
 
       expect(ScrabbleWithFriends::ApplicationMailer).to receive(:game_email).with(
-        subject: "#{player_1.username} has won your Scrabble with Friends game",
+        subject: "#{player_1.username} has won your #{ScrabbleWithFriends::APP_NAME} game",
         game_url: anything,
-        email_addresses: [player_1.username],
+        email_addresses: [player_1.notify_with],
       ).and_call_original
 
-      expect(WebPush).to receive(:payload_send).exactly(2).times.and_call_original
+      expect(WebPush).not_to receive(:payload_send).and_call_original
 
       post scrabble_with_friends.forfeit_game_path(@game)
       expect(response).to redirect_to(scrabble_with_friends.game_path(@game))
@@ -562,15 +578,9 @@ RSpec.describe ScrabbleWithFriends::GamesController, type: :request do
       assert_action_denied_because_user_not_in_game
     end
 
-    it "returns 404 when web push not configured" do
-      allow(ScrabbleWithFriends.config).to receive(:web_push_enabled?).and_return(false)
-
-      post scrabble_with_friends.create_web_push_subscription_game_path(@game)
-      expect(response.status).to eq(404)
-    end
-
     it "creates a subscription record when no match found" do
       player = @game.players.first
+      create_subscription
 
       expect {
         post scrabble_with_friends.create_web_push_subscription_game_path(@game), params: {
@@ -612,7 +622,7 @@ RSpec.describe ScrabbleWithFriends::GamesController, type: :request do
     end
   end
 
-  context "send_web_push_notification" do
+  context "email_subscribe" do
     before do
       create_game
     end
@@ -621,58 +631,177 @@ RSpec.describe ScrabbleWithFriends::GamesController, type: :request do
       assert_action_denied_because_user_not_in_game
     end
 
-    it "returns 404 when web push not configured" do
-      create_turn
+    it "updates notify_with with valid email" do
+      player = @game.players.first
 
-      allow(ScrabbleWithFriends.config).to receive(:web_push_enabled?).and_return(false)
+      expect(player.notify_with).to eq(nil)
 
-      post scrabble_with_friends.send_web_push_notification_game_path(@game)
-      expect(response.status).to eq(404)
-    end
-
-    it "returns 404 when web push not configured" do
-      create_turn
-
-      allow(ScrabbleWithFriends.config).to receive(:web_push_enabled?).and_return(false)
-
-      post scrabble_with_friends.send_web_push_notification_game_path(@game)
-      expect(response.status).to eq(404)
-    end
-
-    it "sends reminder when subscriptions exist" do
-      create_turn
-
-      expect(WebPush).to receive(:payload_send).and_call_original
-
-      post scrabble_with_friends.send_web_push_notification_game_path(@game)
+      post scrabble_with_friends.email_subscribe_game_path(@game, email: "foo@bar")
       expect(response.status).to eq(200)
+
+      player.reload
+
+      expect(player.notify_with).to eq("foo@bar")
+      expect(player.notification_type).to eq("email")
     end
 
-    it "does not send reminder if no subscriptions" do
-      create_turn
+    it "doesnt save invalid email" do
+      player = @game.players.first
 
-      @game.players.first.web_push_subscriptions.destroy_all
+      expect(player.notify_with).to eq(nil)
 
-      expect(WebPush).not_to receive(:payload_send).and_call_original
+      expect {
+        post scrabble_with_friends.email_subscribe_game_path(@game, email: "foo")
+        expect(response).to redirect_to(scrabble_with_friends.game_path(@game))
+      }.to raise_error(ActiveRecord::RecordInvalid)
 
-      post scrabble_with_friends.send_web_push_notification_game_path(@game)
-      expect(response.status).to eq(200)
+      player.reload
+
+      expect(player.notify_with).to eq(nil)
+      expect(player.notification_type).to eq(nil)
+
+      expect {
+        post scrabble_with_friends.email_subscribe_game_path(@game, email: "")
+        expect(response).to redirect_to(scrabble_with_friends.game_path(@game))
+      }.to raise_error(ActionController::ParameterMissing)
+
+      player.reload
+
+      expect(player.notify_with).to eq(nil)
+      expect(player.notification_type).to eq(nil)
     end
+  end
 
-    it "does not send reminder if no game_current_user" do
-      expect(@game.started?).to eq(false)
-
-      expect(WebPush).not_to receive(:payload_send).and_call_original
-
-      post scrabble_with_friends.send_web_push_notification_game_path(@game)
-      expect(response).to redirect_to(scrabble_with_friends.game_path(@game))
-      expect(flash.alert).to match(/Action not permitted, its not anyones turn/)
+  context "notifications_unsubscribe" do
+    before do
+      create_game
     end
 
     it "does not perform action when user not in game" do
-      create_turn
-
       assert_action_denied_because_user_not_in_game
+    end
+
+    it "deletes all web push subscriptions" do
+      player = @game.players.first
+
+      create_subscription
+
+      expect(player.web_push_subscriptions.empty?).to eq(false)
+
+      post scrabble_with_friends.notifications_unsubscribe_game_path(@game)
+      expect(response).to redirect_to(scrabble_with_friends.game_path(@game))
+
+      expect(player.web_push_subscriptions.empty?).to eq(true)
+    end
+
+    it "works when no subscriptions" do
+      player = @game.players.first
+
+      expect(player.web_push_subscriptions.empty?).to eq(true)
+
+      post scrabble_with_friends.notifications_unsubscribe_game_path(@game)
+      expect(response).to redirect_to(scrabble_with_friends.game_path(@game))
+    end
+
+    it "clears player.notify_with" do
+      player = @game.players.first
+      player.update_columns(notify_with: "foo")
+
+      post scrabble_with_friends.notifications_unsubscribe_game_path(@game)
+      expect(response).to redirect_to(scrabble_with_friends.game_path(@game))
+
+      player.reload
+
+      expect(player.notify_with).to eq(nil)
+    end
+  end
+
+  context "trigger_turn_notification" do
+    before do
+      create_game
+    end
+
+    it "does not perform action when user not in game" do
+      assert_action_denied_because_user_not_in_game
+    end
+
+    context "email" do
+      before do
+        @player = @game.players.first
+        @player.update_columns(notify_with: "foo@bar.com")
+
+        expect(WebPush).not_to receive(:payload_send).and_call_original
+      end
+
+      it "sends reminder" do
+        create_turn
+
+        expect(ScrabbleWithFriends::ApplicationMailer).to receive(:game_email).and_call_original
+
+        post scrabble_with_friends.trigger_turn_notification_game_path(@game)
+        expect(response.status).to eq(200)
+      end
+
+      it "does not send reminder if no email" do
+        create_turn
+
+        @player.update_columns(notify_with: nil)
+
+        expect(ScrabbleWithFriends::ApplicationMailer).not_to receive(:game_email).and_call_original
+
+        post scrabble_with_friends.trigger_turn_notification_game_path(@game)
+        expect(response.status).to eq(200)
+      end
+
+      it "does not send reminder if no game_current_user" do
+        expect(@game.started?).to eq(false)
+
+        expect(ScrabbleWithFriends::ApplicationMailer).not_to receive(:game_email).and_call_original
+
+        post scrabble_with_friends.trigger_turn_notification_game_path(@game)
+        expect(response).to redirect_to(scrabble_with_friends.game_path(@game))
+        expect(flash.alert).to match(/Action not permitted, its not anyones turn/)
+      end
+    end
+
+    context "webpush" do
+      before do
+        @player = @game.players.first
+        @player.update_columns(notify_with: "webpush")
+        create_subscription
+
+        expect(ScrabbleWithFriends::ApplicationMailer).not_to receive(:game_email).and_call_original
+      end
+
+      it "sends reminder when subscriptions exist" do
+        create_turn
+
+        expect(WebPush).to receive(:payload_send).and_call_original
+
+        post scrabble_with_friends.trigger_turn_notification_game_path(@game)
+        expect(response.status).to eq(200)
+      end
+
+      it "does not send reminder if no subscriptions" do
+        create_turn
+
+        @player.web_push_subscriptions.destroy_all
+
+        expect(WebPush).not_to receive(:payload_send).and_call_original
+
+        post scrabble_with_friends.trigger_turn_notification_game_path(@game)
+        expect(response.status).to eq(200)
+      end
+
+      it "does not send reminder if no game_current_user" do
+        expect(@game.started?).to eq(false)
+
+        expect(WebPush).not_to receive(:payload_send).and_call_original
+
+        post scrabble_with_friends.trigger_turn_notification_game_path(@game)
+        expect(response).to redirect_to(scrabble_with_friends.game_path(@game))
+        expect(flash.alert).to match(/Action not permitted, its not anyones turn/)
+      end
     end
   end
 end

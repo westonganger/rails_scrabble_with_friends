@@ -12,6 +12,6 @@ module ScrabbleWithFriends
     end
   end
 
-  APP_NAME = "Scrabble with Friends".freeze
+  APP_NAME = "Scrabble With Friends".freeze
   DESCRIPTION = "Simple web-based scrabble".freeze
 end
