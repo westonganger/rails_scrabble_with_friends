@@ -11,7 +11,7 @@ html
     = favicon_link_tag "scrabble_with_friends/favicon.ico"
 
     link rel="manifest" href=pwa_manifest_path(format: :json)
-    meta name="vapid-public-key" content=ScrabbleWithFriends.config.web_push_vapid_public_key.delete("=")
+    meta name="vapid-public-key" content=ScrabbleWithFriends.config.web_push_vapid_public_key.tr("_-", "/+")
 
     = render "layouts/scrabble_with_friends/assets"
 

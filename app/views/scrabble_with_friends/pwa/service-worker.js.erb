@@ -1,0 +1,42 @@
+self.addEventListener("push", function(event){
+  var event_data = event.data.json();
+
+  var title = event_data.title;
+  delete event_data.title
+
+  event.waitUntil(
+    self.registration.showNotification(title, event_data)
+  );
+});
+
+self.addEventListener("pushsubscriptionchange", function(event){
+  var newSubscriptionJson = event.newSubscription.toJSON();
+
+  event.waitUntil(
+    fetch(
+      "<%= update_web_push_subscription_path %>",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          old_endpoint: event.oldSubscription.endpoint,
+          endpoint: event.newSubscription.endpoint,
+          p256dh: newSubscriptionJson.keys.p256dh,
+          auth: newSubscriptionJson.keys.auth
+        }),
+      }
+    )
+  );
+});
+
+self.addEventListener("notificationclick", function(event){
+  event.notification.close();
+
+  var data = event.notification.data || {};
+
+  // here is where you can send the "delivered" update back the server
+
+  event.waitUntil(
+    self.clients.openWindow(data.url)
+  );
+});

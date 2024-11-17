@@ -569,7 +569,7 @@ RSpec.describe ScrabbleWithFriends::GamesController, type: :request do
     end
   end
 
-  context "create_web_push_subscription" do
+  context "web_push_subscribe" do
     before do
       create_game
     end
@@ -583,7 +583,7 @@ RSpec.describe ScrabbleWithFriends::GamesController, type: :request do
       create_subscription
 
       expect {
-        post scrabble_with_friends.create_web_push_subscription_game_path(@game), params: {
+        post scrabble_with_friends.web_push_subscribe_game_path(@game, format: :json), params: {
           endpoint: "some-endpoint",
           keys: {
             p256dh: "some-p-key",
@@ -599,7 +599,7 @@ RSpec.describe ScrabbleWithFriends::GamesController, type: :request do
       player = @game.players.first
 
       expect {
-        post scrabble_with_friends.create_web_push_subscription_game_path(@game), params: {
+        post scrabble_with_friends.web_push_subscribe_game_path(@game, format: :json), params: {
           endpoint: "some-endpoint",
           keys: {
             p256dh: "some-p-key",
@@ -610,7 +610,7 @@ RSpec.describe ScrabbleWithFriends::GamesController, type: :request do
       }.to change { player.web_push_subscriptions.reload.size }.by(1)
 
       expect {
-        post scrabble_with_friends.create_web_push_subscription_game_path(@game), params: {
+        post scrabble_with_friends.web_push_subscribe_game_path(@game, format: :json), params: {
           endpoint: "some-endpoint",
           keys: {
             p256dh: "some-p-key",
@@ -636,7 +636,7 @@ RSpec.describe ScrabbleWithFriends::GamesController, type: :request do
 
       expect(player.notify_with).to eq(nil)
 
-      post scrabble_with_friends.email_subscribe_game_path(@game, email: "foo@bar")
+      post scrabble_with_friends.email_subscribe_game_path(@game, format: :json), params: {email: "foo@bar"}
       expect(response.status).to eq(200)
 
       player.reload
@@ -651,7 +651,7 @@ RSpec.describe ScrabbleWithFriends::GamesController, type: :request do
       expect(player.notify_with).to eq(nil)
 
       expect {
-        post scrabble_with_friends.email_subscribe_game_path(@game, email: "foo")
+        post scrabble_with_friends.email_subscribe_game_path(@game, format: :json), params: {email: "foo"}
         expect(response).to redirect_to(scrabble_with_friends.game_path(@game))
       }.to raise_error(ActiveRecord::RecordInvalid)
 
@@ -661,7 +661,7 @@ RSpec.describe ScrabbleWithFriends::GamesController, type: :request do
       expect(player.notification_type).to eq(nil)
 
       expect {
-        post scrabble_with_friends.email_subscribe_game_path(@game, email: "")
+        post scrabble_with_friends.email_subscribe_game_path(@game, format: :json), params: {email: ""}
         expect(response).to redirect_to(scrabble_with_friends.game_path(@game))
       }.to raise_error(ActionController::ParameterMissing)
 

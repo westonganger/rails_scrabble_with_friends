@@ -225,7 +225,12 @@ module ScrabbleWithFriends
       head :ok
     end
 
-    def create_web_push_subscription
+    def web_push_subscribe
+      if !request.format.json?
+        render_404
+        return
+      end
+
       push_subscription_attrs = {
         endpoint: params.require(:endpoint),
         p256dh: params.require(:keys).require(:p256dh),
@@ -253,6 +258,11 @@ module ScrabbleWithFriends
     end
 
     def email_subscribe
+      if !request.format.json?
+        render_404
+        return
+      end
+
       current_user_player.update!(notify_with: params.require(:email))
       head :ok
     end
@@ -631,25 +641,28 @@ module ScrabbleWithFriends
 
     def _send_web_push_notifications!(title:, body:, url:, subscriptions:)
       subscriptions.each do |s|
-        WebPush.payload_send(
-          message: JSON.generate({
-            title: title,
-            body: body,
-            data: {
-              url: url,
+        begin
+          WebPush.payload_send(
+            message: JSON.generate({
+              title: title,
+              body: body,
+              data: {
+                url: url,
+              },
+              icon: ActionController::Base.helpers.image_url("scrabble_with_friends/favicon.ico"), # TODO use png file, the 192px version
+            }),
+            endpoint: s.endpoint,
+            p256dh: s.p256dh,
+            auth: s.auth,
+            vapid: {
+              subject: request.domain,
+              public_key: ScrabbleWithFriends.config.web_push_vapid_public_key,
+              private_key: ScrabbleWithFriends.config.web_push_vapid_private_key,
             },
-            icon: ActionController::Base.helpers.image_url("scrabble_with_friends/favicon.ico"), # TODO use png file, the 192px version
-          }),
-          endpoint: s.endpoint,
-          p256dh: s.p256dh,
-          auth: s.auth,
-          #ttl: 0, # optional, ttl in seconds, defaults to 2419200 (4 weeks), 0 means only currently connected browsers
-          vapid: {
-            subject: request.domain,
-            public_key: ScrabbleWithFriends.config.web_push_vapid_public_key,
-            private_key: ScrabbleWithFriends.config.web_push_vapid_private_key,
-          },
-        )
+          )
+        rescue WebPush::ExpiredSubscription # others relevant exceptions are WebPush::InvalidSubscription and WebPush::ResponseError
+          s.destroy!
+        end
       end
 
       return true

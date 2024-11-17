@@ -33,18 +33,21 @@
             // device already subscribed
             // we still need to call save to ensure we have a DB entry for this particular game (on this device)
             saveSubscriptionToBackend(subscription);
-          } else{
-            var vapidPublicKey = document.querySelector('meta[name="vapid-public-key"]').content;
 
-            subscription = await pushManager
-              .subscribe({
-                userVisibleOnly: true,
-                applicationServerKey: vapidPublicKey,
-              })
-              .then(function(subscription){
-                saveSubscriptionToBackend(subscription);
-              });
+            return subscription;
           }
+
+          var vapidPublicKey = document.querySelector('meta[name="vapid-public-key"]').content;
+
+          subscription = await pushManager
+            .subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: vapidPublicKey,
+            })
+            .then(function(subscription){
+              saveSubscriptionToBackend(subscription);
+              return true;
+            });
 
           return subscription;
         };
@@ -52,7 +55,7 @@
         var saveSubscriptionToBackend = function(subscription){
           var csrf_token = document.querySelector('meta[name="csrf-token"]').content;
 
-          fetch("<%= create_web_push_subscription_game_path(@game) %>", {
+          fetch("<%= web_push_subscribe_game_path(@game) %>", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",

@@ -15,12 +15,13 @@ ScrabbleWithFriends::Engine.routes.draw do
       post :email_subscribe
       post :notifications_unsubscribe
       post :trigger_turn_notification
-      post :create_web_push_subscription, constraints: {format: :json}
+      post :web_push_subscribe, constraints: {format: :json}
     end
   end
 
   get "service-worker", to: "pwa#service_worker", as: :pwa_service_worker, constraints: {format: :js}
   get "manifest", to: "pwa#manifest", as: :pwa_manifest, constraints: {format: :json}
+  post "update_web_push_subscription", to: "pwa#update_web_push_subscription"
 
   get '/robots', to: 'application#robots', constraints: ->(req){ req.format == :text }
 
