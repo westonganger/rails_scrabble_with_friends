@@ -1,0 +1,43 @@
+button.btn.btn-xs.btn-transparent popovertarget="notification-options" Notification Options
+
+div#notification-options popover=true style="padding: 20px;"
+  css:
+    ::backdrop {
+      background: rgba(0, 0, 0, 0.5);
+    }
+
+  h4 Notification Options
+  .text-center
+    - if current_user_player.notification_type.present?
+      = link_to "Unsubscribe from #{current_user_player.notification_type == "webpush" ? "Browser" : "Email"} notifications", notifications_unsubscribe_game_path(@game), class: "btn btn-xs btn-transparent", "data-confirm" => "Are you sure you want to unsubscribe from notifications for this game?", "data-method" => "post"
+      button.btn.btn-xs.btn-transparent.disabled.space-left type="button" title="Can only have one notification method enabled at a time" = "#{current_user_player.notification_type != "webpush" ? "Browser Notifications" : "Email"}"
+    - else
+      button#email-subscribe.btn.btn-xs.btn-transparent type="button" Email
+      button#webpush-subscribe.btn.btn-xs.btn-transparent.space-left type="button" Browser Notifications
+      javascript:
+        $(function(){
+          $("button#email-subscribe").click(function(){
+            var email = prompt("What is your email address?");
+
+            if(!email){
+              alert("No email entered.");
+              return false;
+            }else if(!email.includes("@") && !email.includes(".")){
+              alert("Invalid email entered.")
+              return false;
+            }
+
+            $.ajax({
+              url: "#{email_subscribe_game_path(@game)}",
+              method: "POST",
+              data: {
+                email: email,
+              },
+            }).done(function(){
+              alert("Subscribed to email notifications.");
+              window.location.reload();
+            });
+          });
+        });
+
+    button.btn.btn-xs.btn-transparent.space-left type="button" popovertargetaction="hide" popovertarget="notification-options" Cancel
