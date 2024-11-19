@@ -1,6 +1,5 @@
 require 'slim'
 require 'hashids'
-require "sprockets/railtie"
 require "web-push"
 
 module ScrabbleWithFriends
@@ -8,8 +7,11 @@ module ScrabbleWithFriends
     isolate_namespace ScrabbleWithFriends
 
     initializer "scrabble_with_friends.assets.precompile" do |app|
+      # this initializer is only called when sprockets is in use
+
       app.config.assets.precompile << "scrabble_with_friends_manifest.js" ### manifest file required
       app.config.assets.precompile << "scrabble_with_friends/favicon.ico"
+      app.config.assets.precompile << "rails-ujs" # provided by activesupport
 
       ### Automatically precompile assets in specified folders
       ["app/assets/images/"].each do |folder|

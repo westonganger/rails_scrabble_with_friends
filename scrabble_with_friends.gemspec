@@ -22,7 +22,6 @@ Gem::Specification.new do |spec|
   spec.add_dependency "actioncable"
   spec.add_dependency "slim"
   spec.add_dependency "hashids"
-  spec.add_dependency "sprockets-rails"
   spec.add_dependency "web-push"
 
   spec.add_development_dependency "sqlite3"
