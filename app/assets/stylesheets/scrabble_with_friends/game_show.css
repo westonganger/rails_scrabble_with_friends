@@ -35,6 +35,8 @@
 }
 
 .board-square{
+  user-select: none;
+  -webkit-user-select: none; /* for safari */
   aspect-ratio: 1; /* for css grid */
   background-color: #CCC5A9;
   position: relative;
@@ -81,6 +83,7 @@
 
 .tile-letter {
   user-select: none;
+  -webkit-user-select: none; /* for safari */
   font-size: calc(var(--tile-size) - 15px);
   width: 100%;
   text-align: center;
@@ -88,6 +91,7 @@
 
 .tile-points {
   user-select: none;
+  -webkit-user-select: none; /* for safari */
   position: absolute;
   bottom: 1px;
   right: 3px;
