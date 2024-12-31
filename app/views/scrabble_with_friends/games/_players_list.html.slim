@@ -20,7 +20,7 @@ div.text-center
 
             - if player.forfeitted?
               = " (Forfeitted)"
-            - elsif current_user_player && player.id != current_user_player.id && player.id == game_current_player.id
+            - elsif current_user_player && player.id != current_user_player.id && game_current_player && player.id == game_current_player.id
               button#send-turn-notification.btn.btn-xs.btn-transparent.space-above.center-block type="button" Still Waiting? Send turn reminder
 
               javascript:
