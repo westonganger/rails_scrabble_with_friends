@@ -16,28 +16,27 @@ html
     = render "layouts/scrabble_with_friends/assets"
 
   body
-    div onclick="void(0);" data-note="Fix for ios safari not registering click events, https://stackoverflow.com/a/39712411/3068360"
-      nav.navbar.navbar-fixed-top
-        i.icon-reorder.navbar-toggle.visible-xs.space-above2 style="cursor: pointer;"  data-toggle="collapse" data-target="#nav" title="Show/Hide Menu"
-
-        .container-fluid
-          .navbar-header
-            h1.hidden = ScrabbleWithFriends::APP_NAME
-            a.navbar-brand href=root_path = "#{ScrabbleWithFriends::APP_NAME}"
-
-          .navbar-collapse.collapse#nav
-            - if signed_in?
-              ul.nav.navbar-nav
-                li class=('active' if params[:action] == "index")
-                  a href=games_path Games
-                li
-                  a href=new_game_path New Game
-
-              ul.nav.navbar-nav.navbar-right
-                li
-                  a href=sign_out_path Sign Out
+    nav.navbar.navbar-fixed-top
+      i.icon-reorder.navbar-toggle.visible-xs.space-above2 style="cursor: pointer;"  data-toggle="collapse" data-target="#nav" title="Show/Hide Menu"
 
       .container-fluid
-        = render "scrabble_with_friends/shared/flash"
+        .navbar-header
+          h1.hidden = ScrabbleWithFriends::APP_NAME
+          a.navbar-brand href=root_path = "#{ScrabbleWithFriends::APP_NAME}"
 
-        = yield
+        .navbar-collapse.collapse#nav
+          - if signed_in?
+            ul.nav.navbar-nav
+              li class=('active' if params[:action] == "index")
+                a href=games_path Games
+              li
+                a href=new_game_path New Game
+
+            ul.nav.navbar-nav.navbar-right
+              li
+                a href=sign_out_path Sign Out
+
+    .container-fluid
+      = render "scrabble_with_friends/shared/flash"
+
+      = yield
