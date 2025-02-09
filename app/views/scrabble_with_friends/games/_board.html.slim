@@ -131,11 +131,11 @@ javascript:
     });
 
     var onPinch = function(el, callback) {
-      let orig_hypot = undefined;
+      var orig_hypot = undefined;
 
       el.on("touchmove", function(event) {
         if (event.touches.length === 2) {
-          let hypot = Math.hypot(
+          var hypot = Math.hypot(
             (event.touches[0].pageX - event.touches[1].pageX),
             (event.touches[0].pageY - event.touches[1].pageY)
           );
@@ -161,4 +161,5 @@ javascript:
         $(".board").removeClass("zoomed-out");
       }
     });
+
   });
