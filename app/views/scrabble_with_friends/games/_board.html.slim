@@ -32,7 +32,6 @@ javascript:
       $.ajax({
         url: "#{validate_turn_game_path(@game, format: :json)}",
         method: "post",
-        async: false,
         data: {game: {tiles_played: tiles_played}},
       }).done(function(data){
         alert(4);
