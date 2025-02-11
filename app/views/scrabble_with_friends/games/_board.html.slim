@@ -27,7 +27,7 @@ javascript:
         data: {game: {tiles_played: tiles_played}},
       }).done(function(data){
         if(data.errors && data.errors.length >= 1){
-          alert(`The following errors are present:\n\n${data.errors.join("\n")}`);
+          alert("The following errors are present:\n\n" + data.errors.join("\n"));
 
           setTimeout(function(){
             $(".board-square .tile.has-error").removeClass("has-error");
@@ -50,7 +50,8 @@ javascript:
         var msg = "";
         msg += "Are you sure you want to finish your turn?\n\nPlease review your words:\n"
         data.words.forEach(function(item, i){
-          msg += `\n${item.word} (${item.points} Points)`;
+          var appendStr = "\n" + item.word + " (" + item.points + " Points)";
+          msg += appendStr;
         });
 
         if(confirm(msg)){
@@ -131,11 +132,11 @@ javascript:
     });
 
     var onPinch = function(el, callback) {
-      var orig_hypot = undefined;
+      let orig_hypot = undefined;
 
       el.on("touchmove", function(event) {
         if (event.touches.length === 2) {
-          var hypot = Math.hypot(
+          let hypot = Math.hypot(
             (event.touches[0].pageX - event.touches[1].pageX),
             (event.touches[0].pageY - event.touches[1].pageY)
           );
@@ -161,5 +162,4 @@ javascript:
         $(".board").removeClass("zoomed-out");
       }
     });
-
   });

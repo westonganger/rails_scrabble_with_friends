@@ -10,7 +10,8 @@ javascript:
       var word = $(this).find("input[name='word']").val();
 
       if(word){
-        window.open(`https://scrabblecheck.com/${word}`, "_blank");
+        var url = "https://scrabblecheck.com/" + word;
+        window.open(url, "_blank");
       }
 
       return false;
