@@ -8,17 +8,10 @@
 javascript:
   $(function(){
 
-    if (window.navigator.standalone) {
-      jQuery.ajaxSetup({isLocal:true});
-    }
-
     $("#finish-turn").click(function(){
       var tiles_played = [];
 
-      alert(1);
-
       $(".board-square .tile.moveable").each(function(){
-        alert(2);
         var tile = $(this);
         var board_square = tile.closest(".board-square");
 
@@ -29,11 +22,7 @@ javascript:
       });
       alert(3);
 
-      $.ajax({
-        url: "#{validate_turn_game_path(@game, format: :json)}",
-        method: "post",
-        data: {game: {tiles_played: tiles_played}},
-      }).done(function(data){
+      $.post("#{validate_turn_game_path(@game, format: :json)}", {game: {tiles_played: tiles_played}}, function(){
         alert(4);
         if(data.errors && data.errors.length >= 1){
           alert("The following errors are present:\n\n" + data.errors.join("\n"));
@@ -44,7 +33,6 @@ javascript:
 
           return false;
         }
-        alert(5);
 
         if(data.words.length == 0){
           var msg = "You have played no tiles. Please play some tiles to take a turn";
@@ -56,7 +44,6 @@ javascript:
           alert(msg);
           return false;
         }
-        alert(6);
 
         var msg = "";
         msg += "Are you sure you want to finish your turn?\n\nPlease review your words:\n"
@@ -75,8 +62,6 @@ javascript:
           });
         }
       });
-
-      alert("last");
     });
 
     $(".tile.moveable").on("dblclick doubletap", function(){
