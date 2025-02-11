@@ -8,10 +8,6 @@
 javascript:
   $(function(){
 
-    if (window.navigator.standalone) {
-      jQuery.ajaxSetup({isLocal:true});
-    }
-
     $("#finish-turn").click(function(){
       var tiles_played = [];
 
