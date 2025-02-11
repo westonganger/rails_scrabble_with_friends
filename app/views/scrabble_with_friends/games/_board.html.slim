@@ -8,6 +8,10 @@
 javascript:
   $(function(){
 
+    if (window.navigator.standalone) {
+      jQuery.ajaxSetup({isLocal:true});
+    }
+
     $("#finish-turn").click(function(){
       var tiles_played = [];
 
@@ -20,10 +24,12 @@ javascript:
           cell: [board_square.data("row-index"), board_square.data("col-index")],
         });
       });
-      alert(3);
 
-      $.post("#{validate_turn_game_path(@game, format: :json)}", {game: {tiles_played: tiles_played}}, function(){
-        alert(4);
+      $.ajax({
+        url: "#{validate_turn_game_path(@game, format: :json)}",
+        method: "post",
+        data: {game: {tiles_played: tiles_played}},
+      }).done(function(data){
         if(data.errors && data.errors.length >= 1){
           alert("The following errors are present:\n\n" + data.errors.join("\n"));
 
