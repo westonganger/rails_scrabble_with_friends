@@ -11,7 +11,7 @@
   = render "players_list"
 
 - if current_user_player
-  .space-above2.text-center
+  .text-center style="line-height: 30px;"
     = render "notifications_options"
 
     - if @game.started?

@@ -19,7 +19,10 @@ div#notification-options popover=true style="padding: 20px;"
           $("button#email-subscribe").click(function(){
             var email = prompt("What is your email address?");
 
-            if(!email){
+            if(email == null){
+              // cancel clicked
+              return false;
+            }else if(!email){
               alert("No email entered.");
               return false;
             }else if(!email.includes("@") && !email.includes(".")){

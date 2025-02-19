@@ -62,7 +62,7 @@ module ScrabbleWithFriends
     def show
       _add_to_your_games
 
-      @permitted_to_take_turn = current_user_player && (!@game.started? || game_current_player.id == current_user_player.id)
+      @permitted_to_take_turn = current_user_player && (!@game.started? || (game_current_player && game_current_player.id == current_user_player.id))
 
       respond_to do |f|
         f.html
@@ -694,7 +694,7 @@ module ScrabbleWithFriends
         ).deliver_now
       end
 
-      web_push_subscriptions = @game.players.select{|player| player.notification_type == "webpush" && current_user_player.id != player.id}.flat_map(&:subscriptions)
+      web_push_subscriptions = @game.players.select{|player| player.notification_type == "webpush" && current_user_player.id != player.id}.flat_map(&:web_push_subscriptions)
 
       if web_push_subscriptions.any?
         _send_web_push_notifications!(
