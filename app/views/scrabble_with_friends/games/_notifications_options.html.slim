@@ -31,7 +31,7 @@ div#notification-options popover=true style="padding: 20px;"
             }
 
             $.ajax({
-              url: "#{email_subscribe_game_path(@game)}",
+              url: "#{email_subscribe_game_path(@game, format: :json)}",
               method: "POST",
               data: {
                 email: email,
@@ -39,6 +39,9 @@ div#notification-options popover=true style="padding: 20px;"
             }).done(function(){
               alert("Subscribed to email notifications.");
               window.location.reload();
+            }).fail(function(){
+              alert("Failed to subscribe to email notifications.");
+              document.getElementById("notification-options").hidePopover();
             });
           });
         });

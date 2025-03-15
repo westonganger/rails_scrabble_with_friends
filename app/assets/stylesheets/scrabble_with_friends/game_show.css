@@ -1,6 +1,6 @@
 :root{
   --tile-size: 50px;
-  --player-tile-size: 50px;
+  --player-tile-size: var(--tile-size);
   --board-size: 15;
 }
 
@@ -142,7 +142,6 @@
 
   :root{
     --tile-size: 35px;
-    --player-tile-size: var(--tile-size);
   }
 
   .tile-points{
@@ -201,3 +200,19 @@
     right: 1px;
   }
 } /*END Small Screen Sizes */
+
+/* Tiny Screen Optimizations */
+@media(max-width: 415px){
+  :root{
+    --tile-size: 31px;
+  }
+}
+
+@media(max-width: 370px){
+  :root{
+    --player-tile-size: 29px;
+  }
+  .board {
+    font-size: 9px;
+  }
+} /* END Tiny Screen Optimizations */

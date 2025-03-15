@@ -222,7 +222,7 @@ module ScrabbleWithFriends
 
       _send_its_your_turn_notifications!(game_current_player, notification_message: notification_message)
 
-      head :ok
+      render json: {}
     end
 
     def web_push_subscribe
@@ -254,7 +254,7 @@ module ScrabbleWithFriends
         current_user_player.update!(notify_with: "webpush")
       end
 
-      head :ok
+      render json: {}
     end
 
     def email_subscribe
@@ -264,7 +264,8 @@ module ScrabbleWithFriends
       end
 
       current_user_player.update!(notify_with: params.require(:email))
-      head :ok
+
+      render json: {}
     end
 
     def notifications_unsubscribe
