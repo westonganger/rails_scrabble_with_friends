@@ -1,7 +1,9 @@
 ScrabbleWithFriends::Engine.routes.draw do
-  get :sign_in, to: "sessions#sign_in"
-  post :sign_in, to: "sessions#sign_in"
-  get :sign_out, to: "sessions#sign_out"
+  scope constraints: {format: :html} do
+    get :sign_in, to: "sessions#sign_in", constraints: {format: :html}
+    post :sign_in, to: "sessions#sign_in", constraints: {format: :html}
+    get :sign_out, to: "sessions#sign_out", constraints: {format: :html}
+  end
 
   resources :games, controller: :games, except: [:edit, :update] do
     member do
