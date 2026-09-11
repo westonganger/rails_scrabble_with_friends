@@ -35,6 +35,20 @@ RSpec.describe ScrabbleWithFriends::SessionsController, type: :request do
       sign_in
       assert_redirected_to scrabble_with_friends.game_path("foo")
     end
+
+    it "rejects non-html requests" do
+      get scrabble_with_friends.sign_in_path, params: {format: :json}
+      expect(response.status).to eq(406)
+
+      get scrabble_with_friends.sign_in_path, params: {format: :xml}
+      expect(response.status).to eq(406)
+
+      post scrabble_with_friends.sign_in_path, params: {format: :json}
+      expect(response.status).to eq(406)
+
+      post scrabble_with_friends.sign_in_path, params: {format: :xml}
+      expect(response.status).to eq(406)
+    end
   end
 
   context "sign_out" do
